@@ -94,6 +94,7 @@ enum StateEnum {
 };
 
 typedef enum AlarmFault {
+  NONE,
   MOTOR,
   TUBE,
   ESTOP,
@@ -111,7 +112,7 @@ typedef enum MotorStatus {
 } MotorStatus; // For lowering and raising the motor manually
 
 volatile StateEnum state = STANDBY; 
-volatile AlarmFault fault = ESTOP;
+volatile AlarmFault fault = NONE;
 
 volatile uint32_t motor_pulses = 0;
 
@@ -156,7 +157,7 @@ void setup() {
 
   state = CALIBRATE;
   
-  Serial.println("[SETUP] done with init");
+  // Serial.println("[SETUP] done with init");
 }
 
 void loop() {

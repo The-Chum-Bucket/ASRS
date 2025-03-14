@@ -30,6 +30,7 @@ float getTideData(){
     prev_itr_hour = -1;
 
     File file = SD.open(sd_cfg.tide_data_name);
+    // TODO: do this check multiple times
     if (!file){
         Serial.println("Failed to Open Tide File");
         return NULL;
@@ -91,6 +92,7 @@ float getTideData(){
       Serial.print("Data PRED: ");
       Serial.println(itr_pred);
       */
+
 
             if (curr_year != itr_year){
                 Serial.println("Need to update SD Card\n");
@@ -159,7 +161,9 @@ float getTideData(){
 
   Serial.print("Interpolated Pred: ");
   Serial.println(interpolated_pred - prev_itr_pred);
+  Serial.println(interpolated_pred);
   */
+
 
     file.close();
     return interpolated_pred;
@@ -169,37 +173,37 @@ float getTideData(){
 float getDropDistance(){
     float drop_distance_cm;
 
-    Serial.println("T");
-    drop_distance_cm = getTideData();
+    sendToPython("T");
+    // drop_distance_cm = getTideData();
 
     // get the distance to drop from online or sd card
     // TODO: finish implementing DIVA
-    /*
-  while (1)
-  {
-    if (Serial.available()) {
-        String data = Serial.readStringUntil('\n'); // Read full line
-        drop_distance_cm = data.toFloat();  // Convert to float
-
-        // if drop distance is -1 then get SD card info
-        if (drop_distance_cm == -1) {
-          drop_distance_cm = getTideData();
+    while (1)
+    {
+        if (Serial.available()) {
+            String data = Serial.readStringUntil('\n'); // Read full line
+            drop_distance_cm = data.toFloat();  // Convert to float
+            break;
         }
-        // otherwise convert from meters to cm
-        else {
-          drop_distance_cm = drop_distance_cm * 100;
-        }
-
-        // Flush any remaining characters
-        while (Serial.available()) {
-            Serial.read();  // Discard extra data
-        }
+        
+        checkEstop();
     }
-    checkEstop();
-  }
-  */
 
-    return sd_cfg.pier_dist_cm + drop_distance_cm;
+    // if drop distance is -1000 then get SD card info
+    if (drop_distance_cm == -1000) {
+        drop_distance_cm = getTideData();
+    }
+    // otherwise convert from meters to cm
+    else {
+        drop_distance_cm = drop_distance_cm * 100;
+    }
+
+    // Flush any remaining characters
+    while (Serial.available()) {
+        Serial.read();  // Discard extra data
+    }
+
+    return sd_cfg.pier_dist_cm - drop_distance_cm + 60.0f;
 }
 
 void listFiles(File dir, int numTabs) {
@@ -467,5 +471,3 @@ bool load_cfg_from_sd(const char* filename) {
     Serial.println("[SD] Config successfully loaded from SD!");
     return true;
 }
-
-
