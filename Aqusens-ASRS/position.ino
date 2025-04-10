@@ -82,7 +82,7 @@ bool dropTube(unsigned int distance_cm) {
         dropping_flag = true;
         drop_distance_cm = distance_cm + tube_position_f;
 
-        // small drop
+        //small drop
         if (distance_cm <= pos_cfg.min_ramp_dist_cm)  {
             small_drop = true;
             setMotorSpeed(-pos_cfg.drop_speed_cm_sec);
