@@ -5,7 +5,7 @@
 //  -Bailey College of Science and Mathamatics Biology Department
 //  -Primary Owner: Alexis Pasulka
 //  -Design Engineers: Doug Brewster and Rob Brewster
-//  -Contributors: Sarah Martin, Deeba Khosravi, Emma Lucke, Jack Anderson, Jorge Ramirez, Danny ("the one, the only")
+//  -Contributors: Sarah Martin, Deeba Khosravi, Emma Lucke, Jack Anderson, Jorge Ramirez, Danny
 //  -Microcontroller: P1AM-100 ProOpen 
 //  -Arduino IDE version:2.3.4
 //  -See User Manual For Project Description
@@ -114,7 +114,8 @@ typedef enum MotorStatus {
 volatile StateEnum state = STANDBY; 
 volatile AlarmFault fault = NONE;
 
-volatile uint32_t motor_pulses = 0;
+volatile uint32_t motor_pulses = 0; // Global position tracker, increments each pulse when lowering, decrements each pulse when raising 
+                                    // (down is the "positive direction")
 
 SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;

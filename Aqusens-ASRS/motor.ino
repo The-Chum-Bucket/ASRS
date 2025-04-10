@@ -5,18 +5,18 @@
 
 // Constants and Enums
 typedef enum MotorDir {
-  CCW,
-  CW,
-  OFF,
+  CCW, //Lowering
+  CW,  //Raising
+  OFF, //Self explanatory
 } MotorDir;
 
 volatile bool toggle = false;
+MotorDir global_motor_state = OFF;
 float MOTORSPEED_FACTOR;
 
 
 // IDK why this needs to be here but it does 
 void setMotorDir(MotorDir dir); 
-// womp womp
 
 
 void setMotorCfg() {
@@ -49,8 +49,10 @@ bool isMotorAlarming() {
 void setMotorDir(MotorDir dir) {
     if (dir == CW) {
         digitalWrite(DIR_POS_PIN, HIGH);
+        global_motor_state = CW;
     } else {
         digitalWrite(DIR_POS_PIN, LOW);
+        global_motor_state = CCW;
     }
 }
 
@@ -75,9 +77,9 @@ void setMotorSpeed(float cm_per_sec) {
     if (cm_per_sec == speed) return; // TODO: ?do i need to added float padding for equality
 
     if (cm_per_sec < 0) {
-        setMotorDir(CCW);
+        setMotorDir(CCW); //Down
     } else if (cm_per_sec > 0) {
-        setMotorDir(CW);
+        setMotorDir(CW);  //Up
     }
 
     speed = cm_per_sec;
@@ -103,6 +105,12 @@ void resetMotor(void) {
 void turnMotorOff(bool double_check = 0) {
     if (double_check) setMotorSpeed(3);
     setMotorSpeed(0);
+    global_motor_state = OFF;
+}
+
+void turnMotorOff2() {
+    setMotorSpeed(0);
+    global_motor_state = OFF;
 }
 
 
@@ -181,6 +189,12 @@ void TC5_Handler() {
         if (!estop_pressed || state == MOTOR_CONTROL) {
             toggle = !toggle;
             digitalWrite(STEP_POS_PIN, toggle);
+
+            if (toggle && global_motor_state == CW) { //Raising
+              motor_pulses--;
+            } else if (toggle && global_motor_state == CCW) {//Lowering
+              motor_pulses++;
+            }
         }
     }
 }
