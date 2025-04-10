@@ -173,6 +173,9 @@ float getTideData(){
 float getDropDistance(){
     float drop_distance_cm;
 
+    // MODIFIED FOR TESTING PURPOSES
+    return 10.0f;
+
     sendToPython("T");
     // drop_distance_cm = getTideData();
 
@@ -325,8 +328,6 @@ bool load_cfg_from_sd(const char* filename) {
 
     file.close(); 
 
-    // THANKS CHAT for the | operator for this json stuff
-
     if (doc.containsKey("motor")) {
         if (doc["motor"].containsKey("reel_radius_cm")) {
             cfg.motor_cfg.reel_radius_cm = doc["motor"]["reel_radius_cm"].as<float>();
@@ -459,14 +460,6 @@ bool load_cfg_from_sd(const char* filename) {
     } else {
         Serial.println("Warning: Missing 'times' key in JSON.");
     }
-
-    // TODO: fix this for loading in JSON
-    // if (doc.containsKey("sd")) {
-    //     strlcpy(cfg.sd_cfg.tide_data_name, doc["sd"]["tide_data_name"] | "", sizeof(cfg.sd_cfg.tide_data_name));
-    //     cfg.sd_cfg.pier_dist_cm = doc["sd"]["pier_dist_cm"] | 0.0f;
-    // } else {
-    //     Serial.println("Warning: Missing 'sd' key in JSON.");
-    // }
 
     Serial.println("[SD] Config successfully loaded from SD!");
     return true;

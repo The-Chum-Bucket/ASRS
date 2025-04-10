@@ -1,9 +1,3 @@
-// For some fun
-// #define FUN 
-#ifdef FUN
-#define TWEAK_TIME_MS           (500)
-#endif
-
 #define DROP_TUBE_DIST_CM       (40.0f)
 #define LIFT_SPEED_CM_S         (0.5f)
 #define HOME_TUBE_SPD_CM_S      (2.0f)
@@ -151,11 +145,6 @@ typedef enum AqusensState {
 bool flushAqusens(unsigned long cur_time) {
   static AqusensState state = RINSE_INIT;
   static unsigned long prev_time;
-  
-  #ifdef FUN
-  static unsigned long prev_time_tweak;
-  static bool sole_state = true;
-  #endif
 
   switch (state) {
     case RINSE_INIT:
@@ -163,25 +152,11 @@ bool flushAqusens(unsigned long cur_time) {
       
       prev_time = millis();
 
-      #ifdef FUN
-      prev_time_tweak = prev_time;
-      #endif
-
       // Serial.println("going to air 1");
       state = AIR_1;
       break;
 
     case AIR_1:
-
-      #ifdef FUN
-      if (cur_time - prev_time_tweak >= TWEAK_TIME_MS) {
-        prev_time_tweak = millis();
-
-        sole_state = !sole_state;
-        updateSolenoid(sole_state, SOLENOID_TWO);
-      }
-
-      #endif
 
       if (cur_time - prev_time >= AIR_GAP_TIME_MS) {
         prev_time = millis();
@@ -265,3 +240,38 @@ bool flushAqusens(unsigned long cur_time) {
   return false;
 }
 
+void flushSampler(int sec) {
+  updateSolenoid(OPEN, SOLENOID_ONE);
+  updateSolenoid(OPEN, SOLENOID_TWO);
+
+  delay(sec * 1000);
+}
+
+void flushSystem() {
+  static unsigned long start_time;
+  unsigned long cur_time;
+  
+  // DUMP TUBE -- TODO: refactor
+  start_time = millis();
+  tube_home_funcs(true);
+  while (cur_time - start_time < DUMP_WATER_TIME_MS) {
+    cur_time = millis();
+  }
+  tube_home_funcs(false);
+
+  // DROP TUBE -- TODO: refactor
+  while (!dropTube(DROP_TUBE_DIST_CM));
+  updateSolenoid(OPEN, SOLENOID_ONE);
+
+  // RAISE TUBE -- TODO: refactor
+  setMotorSpeed(HOME_TUBE_SPD_CM_S);
+
+  while (!magSensorRead());
+  
+  turnMotorOff();
+  tube_home_funcs(true);
+
+  flushSampler(15);
+  updateSolenoid(CLOSED, SOLENOID_ONE);
+  updateSolenoid(CLOSED, SOLENOID_TWO);
+}

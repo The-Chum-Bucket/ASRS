@@ -5,9 +5,9 @@
 //  -Bailey College of Science and Mathamatics Biology Department
 //  -Primary Owner: Alexis Pasulka
 //  -Design Engineers: Doug Brewster and Rob Brewster
-//  -Contributors: Sarah Martin, Deeba Khosravi, Emma Lucke, Jack Anderson, Jorge Ramirez, Danny
+//  -Contributors: Jack Anderson, Emma Lucke, Deeba Khosravi, Jorge Ramirez, Danny Gutierrez
 //  -Microcontroller: P1AM-100 ProOpen 
-//  -Arduino IDE version:2.3.4
+//  -Arduino IDE version:2.3.6
 //  -See User Manual For Project Description
 //  -non-stock libraries needed: (add library reference here)
 
