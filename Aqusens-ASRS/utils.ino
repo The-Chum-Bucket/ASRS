@@ -1,6 +1,3 @@
-#define TIME_BASED_DEBOUNCE_WAIT_TIME_MS 35
-#define PRESS_AND_HOLD_INTERVAL_MS 25
-
 /* Init Functions **************************************************************/
 
 /**
@@ -36,41 +33,6 @@ void estopInit() {
 }
 
 /**
- * @brief switches relay for given solenoid
- * 
- * @param state state of current solenoid (OPEN/CLOSED)
- * @param solenoid_number solenoid to control (SOLENOID_ONE/SOLENOID_TWO)
- */
-void updateSolenoid(SolenoidState state, int solenoid_number) {
-  if (solenoid_number == SOLENOID_ONE) {
-      if (state == OPEN) {
-        solenoid_one_state = OPEN;
-        P1.writeDiscrete(true, RELAY_SLOT, solenoid_number);
-      } else {
-        solenoid_one_state = CLOSED;
-        P1.writeDiscrete(false, RELAY_SLOT, solenoid_number);
-      }
-  } else if (solenoid_number == SOLENOID_TWO) {
-      if (state == OPEN) {
-        solenoid_two_state = OPEN;
-        P1.writeDiscrete(true, RELAY_SLOT, solenoid_number);
-      } else {
-        solenoid_two_state = CLOSED;
-        P1.writeDiscrete(false, RELAY_SLOT, solenoid_number);
-      }
-  }
-}
-
-/**
- * @brief interrupt function for E-Stop
- * 
- */
-void onLowTrigger() {
-  setAlarmFault(ESTOP);
-  // TODO: ?should we turn things off here
-}
-
-/**
  * @brief initializes the RTC
  * 
  */
@@ -103,6 +65,33 @@ void rtcInit() {
   tube_flush_time.Second = TOT_FLUSH_TIME_S % 60;
   
   updateAlarm();
+}
+
+/**
+ * @brief initializes RTD module
+ * 
+ */
+void rtdInit() {
+  const char P1_04RTD_CONFIG[] = { 0x40, 0x03, 0x60, 0x01, 0x20, 0x02, 0x80, 0x00 };
+  // Config data for RTD module, configures Pt1000 type sensor and Celcius units returned when read
+  P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT);
+  // Serial.println(P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT));  //sends the config data to the module in slot 1
+}
+
+/* Interrupt Functions *********************************************************/
+
+/**
+ * @brief interrupt function for E-Stop
+ * 
+ */
+void onLowTrigger() {
+  setAlarmFault(ESTOP);
+  // TODO: ?should we turn things off here
+}
+
+void setAlarmFault(AlarmFault f) {
+  state = ALARM;
+  fault = f;
 }
 
 /**
@@ -171,6 +160,8 @@ void alarmTriggered() {
   }
 }
 
+/* Key Press Functions *********************************************************/
+
 /**
  * @brief controls row moving with cursor
  * 
@@ -197,6 +188,27 @@ char cursorSelect(int begin, int end)
 
   else {
     return key;
+  }
+}
+
+/**
+ * @brief gets any key currently pressed by user
+ * 
+ * @return char key pressed by user (NULL if no current key press)
+ */
+char getKeyPress() {
+  if (digitalRead(KEY_U)) {
+    return 'U';
+  } else if (digitalRead(KEY_D)) {
+    return 'D';
+  } else if (digitalRead(KEY_L)) {
+    return 'L';
+  } else if (digitalRead(KEY_R)) {
+    return 'R';
+  } else if (digitalRead(KEY_S)) {
+    return 'S';
+  } else {
+    return NULL;
   }
 }
 
@@ -244,6 +256,56 @@ char getKeyTimeBasedDebounce() {
   }
 
   return getKeyDebounce();
+}
+
+/**
+ * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
+ *        being incremented/decremented too quickly
+ * 
+ * @param last_key_pressed 
+ * @return char 
+ */
+char pressAndHold(uint8_t last_key_pressed) {
+  //uint8_t currKey = getKeyPress();
+  unsigned long start_time = millis();
+  unsigned long curr_time = millis();
+
+  while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
+    if (getKeyPress() != last_key_pressed) {
+      return 0; //Target key has been let go
+    }
+    curr_time = millis();
+  }
+
+  return last_key_pressed;
+}
+
+/* Util Functions **************************************************************/
+
+/**
+ * @brief switches relay for given solenoid
+ * 
+ * @param state state of current solenoid (OPEN/CLOSED)
+ * @param solenoid_number solenoid to control (SOLENOID_ONE/SOLENOID_TWO)
+ */
+void updateSolenoid(SolenoidState state, int solenoid_number) {
+  if (solenoid_number == SOLENOID_ONE) {
+      if (state == OPEN) {
+        solenoid_one_state = OPEN;
+        P1.writeDiscrete(true, RELAY_SLOT, solenoid_number);
+      } else {
+        solenoid_one_state = CLOSED;
+        P1.writeDiscrete(false, RELAY_SLOT, solenoid_number);
+      }
+  } else if (solenoid_number == SOLENOID_TWO) {
+      if (state == OPEN) {
+        solenoid_two_state = OPEN;
+        P1.writeDiscrete(true, RELAY_SLOT, solenoid_number);
+      } else {
+        solenoid_two_state = CLOSED;
+        P1.writeDiscrete(false, RELAY_SLOT, solenoid_number);
+      }
+  }
 }
 
 /**
@@ -301,27 +363,6 @@ tmElements_t parseTime(const char* time_str) {
   tm.Second = second;
 
   return tm;
-}
-
-/**
- * @brief gets any key currently pressed by user
- * 
- * @return char key pressed by user (NULL if no current key press)
- */
-char getKeyPress() {
-  if (digitalRead(KEY_U)) {
-    return 'U';
-  } else if (digitalRead(KEY_D)) {
-    return 'D';
-  } else if (digitalRead(KEY_L)) {
-    return 'L';
-  } else if (digitalRead(KEY_R)) {
-    return 'R';
-  } else if (digitalRead(KEY_S)) {
-    return 'S';
-  } else {
-    return NULL;
-  }
 }
 
 /**
@@ -602,17 +643,6 @@ bool magSensorRead() {
 }
 
 /**
- * @brief initializes RTD module
- * 
- */
-void RTDInit() {
-  const char P1_04RTD_CONFIG[] = { 0x40, 0x03, 0x60, 0x01, 0x20, 0x02, 0x80, 0x00 };
-  // Config data for RTD module, configures Pt1000 type sensor and Celcius units returned when read
-  P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT);
-  // Serial.println(P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT));  //sends the config data to the module in slot 1
-}
-
-/**
  * @brief reads RTD value from given temperature sensor
  * 
  * @param sensor_num temperature sensor to read from
@@ -627,33 +657,6 @@ float readRTD(TempSensor sensor_num) {
  * 
  * @param string_to_send the string to send over serial
  */
- void sendToPython(String string_to_send) {
+void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
- }
-
-/**
- * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
- *        being incremented/decremented too quickly
- * 
- * @param last_key_pressed 
- * @return char 
- */
-char pressAndHold(uint8_t last_key_pressed) {
-  //uint8_t currKey = getKeyPress();
-  unsigned long start_time = millis();
-  unsigned long curr_time = millis();
-
-  while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
-    if (getKeyPress() != last_key_pressed) {
-      return 0; //Target key has been let go
-    }
-    curr_time = millis();
-  }
-
-  return last_key_pressed;
-}
-
-void setAlarmFault(AlarmFault f) {
-  state = ALARM;
-  fault = f;
 }

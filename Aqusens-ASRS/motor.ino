@@ -1,23 +1,5 @@
-#define SYSTEM_CLOCK_FREQ       (48000000)
-#define PRESCALER_VAL           (8)
-
-#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
-
-// Constants and Enums
-typedef enum MotorDir {
-  CCW, //Lowering
-  CW,  //Raising
-  OFF, //Self explanatory
-} MotorDir;
-
-volatile bool toggle = false;
-MotorDir global_motor_state = OFF;
-float MOTORSPEED_FACTOR;
-
-
 // IDK why this needs to be here but it does 
 void setMotorDir(MotorDir dir); 
-
 
 void setMotorCfg() {
     const MotorConfig_t& motor_cfg = getGlobalCfg().motor_cfg;

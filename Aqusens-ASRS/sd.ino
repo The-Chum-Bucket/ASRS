@@ -1,7 +1,3 @@
-#define GMT_TO_PST  (8)
-#define JSON_SIZE   (4096)
-SDConfig_t sd_cfg = {0};
-
 void setSDCfg(SDConfig_t& cfg) {
     sd_cfg = cfg;
 }
