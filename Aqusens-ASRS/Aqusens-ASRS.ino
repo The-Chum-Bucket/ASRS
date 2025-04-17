@@ -205,7 +205,6 @@ typedef struct TimesConfig_t {
 typedef struct GlobalConfig_t {
     MotorConfig_t& motor_cfg;
     PositionConfig_t& position_cfg;
-    FlushConfig_t& flush_cfg;
     SDConfig_t& sd_cfg;
     TimesConfig_t& times_cfg;
 } GlobalConfig_t;
@@ -228,17 +227,6 @@ PositionConfig_t DEF_POSITION_CFG = {
     {25.0f, 50.0f, 10.0f, 1.5f}
 };
 
-FlushConfig_t DEF_FLUSH_CFG = {
-    { LIFT_TUBE_TIME_S,
-    DUMP_WATER_TIME_S,
-    ROPE_DROP_TIME_S,
-    RINSE_ROPE_TIME_S,
-    RINSE_TUBE_TIME_S }, 
-    { AIR_GAP_TIME_S,
-    WATER_RINSE_TIME_S,
-    LAST_AIR_GAP_TIME_S }
-};
-
 SDConfig_t DEF_SD_CFG = {"tides.txt", PIER_DEFAULT_DIST_CM};
 
 TimesConfig_t DEF_TIME_CFG  = {
@@ -247,7 +235,7 @@ TimesConfig_t DEF_TIME_CFG  = {
     {0, 0, 0, 8}
 };
 
-GlobalConfig_t gbl_cfg = {DEF_MOTOR_CFG, DEF_POSITION_CFG, DEF_FLUSH_CFG, DEF_SD_CFG, DEF_TIME_CFG};
+GlobalConfig_t gbl_cfg = {DEF_MOTOR_CFG, DEF_POSITION_CFG, DEF_SD_CFG, DEF_TIME_CFG};
 
 
 // lcd.ino
@@ -311,7 +299,8 @@ uint8_t settings_page = 1; // current settings page
 #define LIFT_SPEED_CM_S         (0.5f)
 #define HOME_TUBE_SPD_CM_S      (2.0f)
 
-FlushConfig_t flush_cfg = {0};
+#define FRESHWATER_TIME_TO_AQU (30)
+
 unsigned long FLUSH_TIME_S, AQUSENS_TIME_S, TOT_FLUSH_TIME_S;
 unsigned long AIR_GAP_TIME_MS, LAST_AIR_GAP_TIME_MS, WATER_RINSE_TIME_MS;
 unsigned long DUMP_WATER_TIME_MS, RINSE_TUBE_TIME_MS;

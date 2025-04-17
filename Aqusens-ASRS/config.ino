@@ -5,7 +5,6 @@
 GlobalConfig_t& getGlobalCfg();
 void setMotorCfg();
 void setPositionCfg(PositionConfig_t& cfg);
-void setFlushCfg(FlushConfig_t& cfg);
 void setSDCfg(SDConfig_t& cfg);
 // void setTimesCfg(TimesConfig_t& cfg);
 bool load_cfg_from_sd(const char* filename);
@@ -30,7 +29,6 @@ void init_cfg() {
     // set up the config to devices
     setMotorCfg();
     setPositionCfg(gbl_cfg.position_cfg);
-    setFlushCfg(gbl_cfg.flush_cfg);
     setSDCfg(gbl_cfg.sd_cfg);
     // setTimesCfg(gbl_cfg.times_cfg);
 }
