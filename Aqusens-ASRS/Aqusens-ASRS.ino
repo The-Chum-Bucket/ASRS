@@ -55,6 +55,10 @@
 #define SOLENOID_ONE 3
 #define SOLENOID_TWO 4
 
+// Miscellaneous 
+#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 10 * 1000 //Wait for a maximum of 10 seconds for a reply from the topside computer
+
+
 // RTD Inputs
 typedef enum TempSensor {
   TEMP_SENSOR_ONE = 1, // TODO: Eventually change to more descriptive names, depending on what each sensor actually is measuring
@@ -98,6 +102,7 @@ typedef enum AlarmFault {
   MOTOR,
   TUBE,
   ESTOP,
+  TOPSIDE_COMP_COMMS
 } AlarmFault;
 
 typedef enum SolenoidState {
@@ -139,6 +144,11 @@ float drop_distance_cm;
 float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
 
 
+
+bool debug_ignore_timeouts = false;
+
+
+
 /* Setup and Loop **************************************************************/
 void setup() {
   Serial.begin(115200);
@@ -162,6 +172,26 @@ void setup() {
 }
 
 void loop() {
+
+  // bool test = false;
+
+  // homeTube2();
+  // Serial.println("Tube homed, waiting 5 sec...");
+  // delay(5000);
+  // Serial.println("Lifting tube!");
+  // liftup_tube2(test);
+  // // Serial.println("Tube lifted!");
+  // // delay(50);
+  // // Serial.println("Returning tube!");
+  // // test = true;
+  // // unlift_tube(test);
+
+
+  // while(1) {
+  //   turnMotorOff2();
+  // }
+
+
   switch (state) {
     case CALIBRATE: // Entered after Alarm mode to recalibrate sample device and flush as needed
       calibrateLoop();

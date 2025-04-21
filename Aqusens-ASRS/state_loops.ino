@@ -21,7 +21,7 @@ void calibrateLoop() {
   }  
    
 
-  homeTube();
+  homeTube2();
   state = STANDBY;
 }
 
@@ -81,7 +81,6 @@ void ensureSampleStartLoop() {
     if (key_pressed == 'S') {
       if (cursor_y == 2) {
         state = RELEASE;
-        // state = FLUSH_TUBE;
       }
       else if (cursor_y == 3) {
         state = STANDBY;
@@ -103,9 +102,6 @@ void releaseLoop() {
   
 
   drop_distance_cm = getDropDistance();
-  // Serial.print("dropping ");
-  // Serial.println(drop_distance_cm);
-  // drop_distance_cm = 60;
 
   // actually drop the tube
   while (state == RELEASE){
@@ -114,7 +110,7 @@ void releaseLoop() {
 
     if (isMotorAlarming()) setAlarmFault(MOTOR);
 
-    if (dropTube(drop_distance_cm)) {
+    if (dropTube2(drop_distance_cm)) {
       state = SOAK;
     }
   }
@@ -189,7 +185,7 @@ void recoverLoop() {
     if (isMotorAlarming()) setAlarmFault(MOTOR);
     
 
-    if (retrieveTube(tube_position_f)) {
+    if (retrieveTube2(0)) {
       state = SAMPLE;
     }
     snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
@@ -205,12 +201,21 @@ void recoverLoop() {
 void sampleLoop() {
   resetLCD();
 
+  unsigned long start_time = millis();
+  unsigned long curr_time = start_time;
+
   // TODO: wrap this in a meaningful function name (inline?)
   sendToPython("S");
 
   while (state == SAMPLE) 
   {
     sampleLCD();
+
+    if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
+    {
+      setAlarmFault(TOPSIDE_COMP_COMMS);
+      continue;
+    }
 
      if (Serial.available()) {
        String data = Serial.readStringUntil('\n'); // Read full line
@@ -222,7 +227,7 @@ void sampleLoop() {
 
        // only transition to flushing after Aqusens sample done
        else {
-         if (data == "D") {  
+         if (data == "D") { 
            state = FLUSH_TUBE;
          }
        }
@@ -233,6 +238,7 @@ void sampleLoop() {
        }
      }
 
+    curr_time = millis();
     // // TODO: if pc_signal
     // if (Serial.available()) {
     //   state = FLUSH_TUBE;
@@ -316,10 +322,19 @@ void tubeFlushLoop() {
  */
 void dryLoop() {
   // turn off Aqusens pump before transitioning to dry state
+  unsigned long start_time = millis();
+  unsigned long curr_time = start_time;
+
   sendToPython("F");
+  
 
   while (state == DRY) {
     checkEstop();
+
+    if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time) { //If timeout ocurred...
+      setAlarmFault(TOPSIDE_COMP_COMMS);
+      continue;
+    }
 
     if (Serial.available()) {
       String data = Serial.readStringUntil('\n'); // Read full line
@@ -334,6 +349,8 @@ void dryLoop() {
         Serial.read();  // Discard extra data
       }
     }
+
+    curr_time = millis();
   }
   // setMotorSpeed(0);
 
@@ -342,7 +359,7 @@ void dryLoop() {
 
   resetLCD();
 
-  uint32_t curr_time = millis();
+  curr_time = millis();
   uint32_t end_time = curr_time + (60 * dry_time.Minute * 1000) + (dry_time.Second * 1000);
 
   int seconds_remaining, minutes_remaining;

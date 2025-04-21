@@ -7,7 +7,7 @@
   "position": {
     "narrow_tube_cm": 15.0,
     "tube_cm": 85.0,
-    "water_level_cm": 15.0,
+    "water_level_cm": 30.0,
     "min_ramp_dist_cm": 120.0,
     "drop_speed_cm_sec": 15.0,
     "raise_speed_cm_sec": 5.0,

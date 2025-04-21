@@ -77,7 +77,7 @@ bool flushTube() {
       break;      
 
     case ROPE_DROP:
-      if (dropTube(DROP_TUBE_DIST_CM)) {
+      if (dropTube2(DROP_TUBE_DIST_CM)) {
         updateSolenoid(OPEN, SOLENOID_ONE);
         
         state = RINSE_ROPE_HOME; 

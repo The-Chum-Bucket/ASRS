@@ -598,7 +598,12 @@ bool checkEstop() {
 bool magSensorRead() {
   // Reads the magnetic sensor input
   // Returns 1 if high, 0 if low
-  return P1.readDiscrete(HV_GPIO_SLOT, MAG_SENSOR_IO_SLOT);
+  if (P1.readDiscrete(HV_GPIO_SLOT, MAG_SENSOR_IO_SLOT)) {
+    motor_pulses = 0; //0 is "home position", tube is inside of the docking chamber
+    return true;
+  }
+  else 
+    return false;
 }
 
 /**
@@ -653,7 +658,9 @@ char pressAndHold(uint8_t last_key_pressed) {
   return last_key_pressed;
 }
 
-void setAlarmFault(AlarmFault f) {
+void setAlarmFault(AlarmFault fault_type) {
+  if (fault_type == TOPSIDE_COMP_COMMS && debug_ignore_timeouts) //Global flag, set when want to ignore comms timeouts, returns without setting alarm
+    return;
   state = ALARM;
-  fault = f;
+  fault = fault_type;
 }
