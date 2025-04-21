@@ -172,26 +172,6 @@ void setup() {
 }
 
 void loop() {
-
-  // bool test = false;
-
-  // homeTube2();
-  // Serial.println("Tube homed, waiting 5 sec...");
-  // delay(5000);
-  // Serial.println("Lifting tube!");
-  // liftup_tube2(test);
-  // // Serial.println("Tube lifted!");
-  // // delay(50);
-  // // Serial.println("Returning tube!");
-  // // test = true;
-  // // unlift_tube(test);
-
-
-  // while(1) {
-  //   turnMotorOff2();
-  // }
-
-
   switch (state) {
     case CALIBRATE: // Entered after Alarm mode to recalibrate sample device and flush as needed
       calibrateLoop();

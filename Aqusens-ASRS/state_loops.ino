@@ -21,7 +21,7 @@ void calibrateLoop() {
   }  
    
 
-  homeTube2();
+  homeTube();
   state = STANDBY;
 }
 
@@ -110,7 +110,7 @@ void releaseLoop() {
 
     if (isMotorAlarming()) setAlarmFault(MOTOR);
 
-    if (dropTube2(drop_distance_cm)) {
+    if (dropTube(drop_distance_cm)) {
       state = SOAK;
     }
   }
@@ -185,7 +185,7 @@ void recoverLoop() {
     if (isMotorAlarming()) setAlarmFault(MOTOR);
     
 
-    if (retrieveTube2(0)) {
+    if (retrieveTube(0)) { //Return to 0 distance, or the "home" state
       state = SAMPLE;
     }
     snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
