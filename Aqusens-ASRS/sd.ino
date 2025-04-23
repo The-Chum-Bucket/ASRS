@@ -1,7 +1,3 @@
-#define GMT_TO_PST  (8)
-#define JSON_SIZE   (4096)
-SDConfig_t sd_cfg = {0};
-
 void setSDCfg(SDConfig_t& cfg) {
     sd_cfg = cfg;
 }
@@ -174,6 +170,9 @@ float getTideData(){
 float getDropDistance(){
     float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
 
+    // MODIFIED FOR TESTING PURPOSES
+    return 10.0f;
+
     sendToPython("T");
     // float drop_distance_cm = getTideData();
 
@@ -284,18 +283,6 @@ void export_cfg_to_sd() {
     JsonArray raise_speeds = doc["position"].createNestedArray("raise_speeds");
     for (float speed : cfg.position_cfg.raise_speeds) raise_speeds.add(speed);
 
-    // flush time config
-    doc["flush"]["lift_tube_time_s"] = cfg.flush_cfg.flush_time_cfg.lift_tube_time_s;
-    doc["flush"]["dump_water_time_s"] = cfg.flush_cfg.flush_time_cfg.dump_water_time_s;
-    doc["flush"]["rope_drop_time_s"] = cfg.flush_cfg.flush_time_cfg.rope_drop_time_s;
-    doc["flush"]["rinse_rope_time_s"] = cfg.flush_cfg.flush_time_cfg.rinse_rope_time_s;
-    doc["flush"]["rinse_tube_time_s"] = cfg.flush_cfg.flush_time_cfg.rinse_tube_time_s;
-
-    // Aqusens timing config
-    doc["aqusens"]["air_gap_time_s"] = cfg.flush_cfg.aqusens_time_cfg.air_gap_time_s;
-    doc["aqusens"]["water_rinse_time_s"] = cfg.flush_cfg.aqusens_time_cfg.water_rinse_time_s;
-    doc["aqusens"]["last_air_gap_time_s"] = cfg.flush_cfg.aqusens_time_cfg.last_air_gap_time_s;
-
     // SD config
     doc["sd"]["tide_data_name"] = cfg.sd_cfg.tide_data_name;
     doc["sd"]["pier_dist_cm"] = cfg.sd_cfg.pier_dist_cm;
@@ -334,8 +321,6 @@ bool load_cfg_from_sd(const char* filename) {
     }
 
     file.close(); 
-
-    // THANKS CHAT for the | operator for this json stuff
 
     if (doc.containsKey("motor")) {
         if (doc["motor"].containsKey("reel_radius_cm")) {
@@ -390,44 +375,6 @@ bool load_cfg_from_sd(const char* filename) {
         Serial.println("Warning: Missing 'position' key in JSON.");
     }
 
-    if (doc.containsKey("flush")) {
-        JsonObject flush = doc["flush"];
-
-        if (flush.containsKey("lift_tube_time_s")) {
-            cfg.flush_cfg.flush_time_cfg.lift_tube_time_s = flush["lift_tube_time_s"].as<float>();
-        }
-        if (flush.containsKey("dump_water_time_s")) {
-            cfg.flush_cfg.flush_time_cfg.dump_water_time_s = flush["dump_water_time_s"].as<unsigned long>();
-        }
-        if (flush.containsKey("rope_drop_time_s")) {
-            cfg.flush_cfg.flush_time_cfg.rope_drop_time_s = flush["rope_drop_time_s"].as<float>();
-        }
-        if (flush.containsKey("rinse_rope_time_s")) {
-            cfg.flush_cfg.flush_time_cfg.rinse_rope_time_s = flush["rinse_rope_time_s"].as<float>();
-        }
-        if (flush.containsKey("rinse_tube_time_s")) {
-            cfg.flush_cfg.flush_time_cfg.rinse_tube_time_s = flush["rinse_tube_time_s"].as<unsigned long>();
-        }
-    } else {
-        Serial.println("Warning: Missing 'flush' key in JSON.");
-    }
-
-    if (doc.containsKey("aqusens")) {
-        JsonObject aqusens = doc["aqusens"];
-
-        if (aqusens.containsKey("air_gap_time_s")) {
-            cfg.flush_cfg.aqusens_time_cfg.air_gap_time_s = aqusens["air_gap_time_s"].as<unsigned long>();
-        }
-        if (aqusens.containsKey("water_rinse_time_s")) {
-            cfg.flush_cfg.aqusens_time_cfg.water_rinse_time_s = aqusens["water_rinse_time_s"].as<unsigned long>();
-        }
-        if (aqusens.containsKey("last_air_gap_time_s")) {
-            cfg.flush_cfg.aqusens_time_cfg.last_air_gap_time_s = aqusens["last_air_gap_time_s"].as<unsigned long>();
-        }
-    } else {
-        Serial.println("Warning: Missing 'aqusens' key in JSON.");
-    }
-
     if (doc.containsKey("times")) {
         JsonObject times = doc["times"];
 
@@ -469,14 +416,6 @@ bool load_cfg_from_sd(const char* filename) {
     } else {
         Serial.println("Warning: Missing 'times' key in JSON.");
     }
-
-    // TODO: fix this for loading in JSON
-    // if (doc.containsKey("sd")) {
-    //     strlcpy(cfg.sd_cfg.tide_data_name, doc["sd"]["tide_data_name"] | "", sizeof(cfg.sd_cfg.tide_data_name));
-    //     cfg.sd_cfg.pier_dist_cm = doc["sd"]["pier_dist_cm"] | 0.0f;
-    // } else {
-    //     Serial.println("Warning: Missing 'sd' key in JSON.");
-    // }
 
     Serial.println("[SD] Config successfully loaded from SD!");
     return true;

@@ -4,6 +4,7 @@
  * @file position.ino
  */
 
+
 #define REEL_RADIUS 5  //The gearbox reel's radius, currently is 5cm (eventually move into a config.ino)
 #define GEARBOX_RATIO  5 // Geatbox ratio is 5:1, this number states how many motor turns equal one gearbox turn
 #define TIMEOUT_TIME_MS 30 * 1000 //30 sec
@@ -34,11 +35,13 @@ void setPositionCfg(PositionConfig_t& cfg) {
 
 void homeTube() {
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
+  
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
     //Update LCD?
   }
 
   motor_pulses = 0;
+
   turnMotorOff();
 }
 

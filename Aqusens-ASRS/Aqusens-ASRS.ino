@@ -5,9 +5,9 @@
 //  -Bailey College of Science and Mathamatics Biology Department
 //  -Primary Owner: Alexis Pasulka
 //  -Design Engineers: Doug Brewster and Rob Brewster
-//  -Contributors: Sarah Martin, Deeba Khosravi, Emma Lucke, Jack Anderson, Jorge Ramirez, Danny
+//  -Contributors: Jack Anderson, Emma Lucke, Deeba Khosravi, Jorge Ramirez, Danny Gutierrez
 //  -Microcontroller: P1AM-100 ProOpen 
-//  -Arduino IDE version:2.3.4
+//  -Arduino IDE version:2.3.6
 //  -See User Manual For Project Description
 //  -non-stock libraries needed: (add library reference here)
 
@@ -25,32 +25,31 @@
 
 /* Pin Mapping ********************************************************************/
 
-// Slots
+// Slots - Position of modules
 #define HV_GPIO_SLOT 1                  // High voltage GPIO (P1-15CDD1)
 #define RELAY_SLOT   2                  // Relay module (P1-04TRS)
 #define RTD_SLOT     3                  // RTD Temp Sensor Module (P1-04RTD)
 
-// Keypad
+// Keypad (GPIO)
 #define KEY_S 0
 #define KEY_D 1
 #define KEY_U 2
 #define KEY_L 3
 #define KEY_R 4
 
-// SD card
+// SD card - chip select pin TODO: what is this?
 #define SD_CS 28
 
-//Motor
+// Motor (GPIO)
 #define STEP_POS_PIN  6
 #define DIR_POS_PIN   13
 #define ALARM_PLUS A2  // Used as interrupt, should be high normally, low in case of motor alarm
 #define ALARM_MINUS A5 // Keep High
 
-// HV GPIO
+// HV GPIO (P1-15CDD1)
 #define MAG_SENSOR_IO_SLOT 1
 
-// Relays
-#define RELAY_SLOT 2
+// Relays - Motor and Solenoid Power (P1-04TRS)
 #define MOTOR_POWER 1
 #define SOLENOID_ONE 3
 #define SOLENOID_TWO 4
@@ -58,12 +57,12 @@
 // Miscellaneous 
 #define TOPSIDE_COMP_COMMS_TIMEOUT_MS 10 * 1000 //Wait for a maximum of 10 seconds for a reply from the topside computer
 
-
-// RTD Inputs
+// Temperature Sensors (P1-04RTD)
 typedef enum TempSensor {
   TEMP_SENSOR_ONE = 1, // TODO: Eventually change to more descriptive names, depending on what each sensor actually is measuring
   TEMP_SENSOR_TWO = 2
 } TempSensor;
+
 
 /* Variable Declarations *********************************************************/
 
@@ -97,7 +96,7 @@ enum StateEnum {
   SET_CONTRAST      
 };
 
-typedef enum AlarmFault {
+typedef enum AlarmFault { // TODO: add SERIAL alarm state
   NONE,
   MOTOR,
   TUBE,
@@ -105,10 +104,159 @@ typedef enum AlarmFault {
   TOPSIDE_COMP_COMMS
 } AlarmFault;
 
-typedef enum SolenoidState {
-  OPEN,
-  CLOSED
-} SolenoidState;
+volatile StateEnum state = STANDBY; 
+volatile AlarmFault fault = NONE;
+
+volatile uint32_t motor_pulses = 0; // Global position tracker, increments each pulse when lowering, decrements each pulse when raising 
+                                    // (down is the "positive direction")
+
+
+int8_t cursor_y = 2; // keeps track of current cursor position
+
+// config.ino - TODO: REMOVE ALL THIS
+
+#define CONFIG_FILENAME         ("CONFIG~1.JSO")
+
+// motor.ino
+#define REEL_RAD_CM             (5.0f)
+#define PULSE_PER_REV           (1600)
+#define GEAR_RATIO              (5.0f)
+
+// position.ino
+#define NARROW_TUBE_CM          (15.0f) 
+#define TUBE_CM                 (85.0f) 
+#define WATER_LEVEL_CM          (15.0f) 
+#define MIN_RAMP_DIST_CM        (NARROW_TUBE_CM + TUBE_CM + WATER_LEVEL_CM + 5.0f)
+#define DROP_SPEED_CM_SEC       (15.0f)
+#define RAISE_SPEED_CM_SEC      (5.0f)
+
+// tube_flush.ino
+// timings
+#define LIFT_TUBE_TIME_S        (0.5f)
+#define DUMP_WATER_TIME_S       (5UL)
+#define ROPE_DROP_TIME_S        (40.0f / 15.0f)
+#define RINSE_ROPE_TIME_S       (20.0f)
+#define RINSE_TUBE_TIME_S       (5UL)
+
+// aqusens timings 
+#define AIR_GAP_TIME_S          (5)
+#define WATER_RINSE_TIME_S      (15)
+#define LAST_AIR_GAP_TIME_S     (10)
+
+// sd.ino
+#define PIER_DEFAULT_DIST_CM  (762.0f)
+#define TIDE_FILE "tides.txt"
+
+// ========================================================================
+// Struct Definitions
+// ========================================================================
+
+typedef struct MotorConfig_t {
+    float reel_radius_cm;
+    float gear_ratio;
+    unsigned int pulse_per_rev;
+} MotorConfig_t;
+
+typedef struct PositionConfig_t {
+    float narrow_tube_cm;
+    float tube_cm;
+    float water_level_cm;
+    float min_ramp_dist_cm;
+    float drop_speed_cm_sec;
+    float raise_speed_cm_sec;
+    float drop_speeds[4];
+    float raise_speeds[4];
+} PositionConfig_t;
+
+typedef struct FlushTimeConfig_t {
+    float lift_tube_time_s;
+    unsigned long dump_water_time_s;
+    float rope_drop_time_s;
+    float rinse_rope_time_s;
+    unsigned long rinse_tube_time_s;
+} FlushTimeConfig_t;
+
+typedef struct AqusensTimeConfig_t {
+    unsigned long air_gap_time_s;
+    unsigned long water_rinse_time_s;
+    unsigned long last_air_gap_time_s;
+} AqusensTimeConfig_t;
+
+// TODO: ?get rid of pointers?
+typedef struct FlushConfig_t {
+    FlushTimeConfig_t flush_time_cfg;
+    AqusensTimeConfig_t aqusens_time_cfg;
+} FlushConfig_t;
+
+typedef struct SDConfig_t {
+    char* tide_data_name;
+    float pier_dist_cm;
+} SDConfig_t;
+
+typedef struct TimeUnit_t {
+    uint8_t day;    
+    uint8_t hour;   
+    uint8_t min; 
+    uint8_t sec; 
+} TimeUnit_t;
+
+typedef struct TimesConfig_t {
+    TimeUnit_t sample_interval;
+    TimeUnit_t soak_time;
+    TimeUnit_t dry_time;
+} TimesConfig_t;
+
+typedef struct GlobalConfig_t {
+    MotorConfig_t& motor_cfg;
+    PositionConfig_t& position_cfg;
+    SDConfig_t& sd_cfg;
+    TimesConfig_t& times_cfg;
+} GlobalConfig_t;
+
+
+// ========================================================================
+// Default Values
+// ========================================================================
+
+MotorConfig_t DEF_MOTOR_CFG = {REEL_RAD_CM, GEAR_RATIO, PULSE_PER_REV};
+
+PositionConfig_t DEF_POSITION_CFG = {
+    NARROW_TUBE_CM,
+    TUBE_CM,
+    WATER_LEVEL_CM,
+    MIN_RAMP_DIST_CM,
+    DROP_SPEED_CM_SEC,
+    RAISE_SPEED_CM_SEC,
+    {15.0f, 30.0f, 75.0f, 30.0f},
+    {25.0f, 50.0f, 10.0f, 1.5f}
+};
+
+SDConfig_t DEF_SD_CFG = {"tides.txt", PIER_DEFAULT_DIST_CM};
+
+TimesConfig_t DEF_TIME_CFG  = {
+    {0, 0, 15, 0}, 
+    {0, 0, 0, 5},
+    {0, 0, 0, 8}
+};
+
+GlobalConfig_t gbl_cfg = {DEF_MOTOR_CFG, DEF_POSITION_CFG, DEF_SD_CFG, DEF_TIME_CFG};
+
+
+// lcd.ino
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// motor.ino
+#define SYSTEM_CLOCK_FREQ       (48000000)
+#define PRESCALER_VAL           (8)
+
+#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
+
+// TODO: these two enums are redundant @Jack
+typedef enum MotorDir {
+  CCW, //Lowering
+  CW,  //Raising
+  OFF
+} MotorDir;
 
 typedef enum MotorStatus {
   RAISING,
@@ -116,33 +264,77 @@ typedef enum MotorStatus {
   MOTOR_OFF
 } MotorStatus; // For lowering and raising the motor manually
 
-volatile StateEnum state = STANDBY; 
-volatile AlarmFault fault = NONE;
+volatile bool toggle = false;
+MotorDir global_motor_state = OFF;
+float MOTORSPEED_FACTOR;
 
-volatile uint32_t motor_pulses = 0; // Global position tracker, increments each pulse when lowering, decrements each pulse when raising 
-                                    // (down is the "positive direction")
 
-SolenoidState solenoid_one_state = CLOSED;
-SolenoidState solenoid_two_state = CLOSED;
+// position.ino
+#define REEL_RADIUS 5  //The gearbox reel's radius, currently is 5cm (eventually move into a config.ino)
+#define GEARBOX_RATIO  5 // Geatbox ratio is 5:1, this number states how many motor turns equal one gearbox turn
 
-// Timing
+#define PULSES_TO_DISTANCE(num_pulses) ((pulses * PI * 2 * REEL_RADIUS)/(PULSES_PER_REV * GEARBOX_RATIO)) //Converts a number of pulses to a distance in cm
+#define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS)) // Converts a distance into the corresponding # of pulses from home
+
+#define SAFE_RISE_SPEED_CM_SEC  (3.0f)
+#define SAFE_DROP_DIST_CM       (10.0f)
+#define NUM_PHASES              (4UL)
+#define FREE_FALL_IND           (2)
+#define RAISE_DIST_PADDING_CM   (10.0f)
+
+PositionConfig_t pos_cfg = {0};
+
+float drop_distance_cm;
+float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
+
+// sd.ino
+#define GMT_TO_PST  (8)
+#define JSON_SIZE   (4096)
+SDConfig_t sd_cfg = {0};
+
+// settings.ino
 tmElements_t next_sample_time, sample_interval, soak_time, dry_time, tube_flush_time, aqusens_flush_time;
-volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/released
 
-int8_t cursor_y = 2; // keeps track of current cursor position
 uint8_t last_setting_page = 4; // amount of settings pages
 uint8_t settings_page = 1; // current settings page
+
+// tube_flush.ino
+#define DROP_TUBE_DIST_CM       (40.0f)
+#define LIFT_SPEED_CM_S         (0.5f)
+#define HOME_TUBE_SPD_CM_S      (2.0f)
+
+#define FRESHWATER_TIME_TO_AQU (30)
+
+unsigned long FLUSH_TIME_S, AQUSENS_TIME_S, TOT_FLUSH_TIME_S;
+unsigned long AIR_GAP_TIME_MS, LAST_AIR_GAP_TIME_MS, WATER_RINSE_TIME_MS;
+unsigned long DUMP_WATER_TIME_MS, RINSE_TUBE_TIME_MS;
+
+typedef enum FlushState {
+  INIT,
+  DUMP_TUBE,
+  ROPE_DROP,
+  RINSE_ROPE_HOME,
+  RINSE_TUBE,
+  RINSE_AQUSENS,
+} FlushState;
+
+// utils.ino
+#define TIME_BASED_DEBOUNCE_WAIT_TIME_MS 35
+#define PRESS_AND_HOLD_INTERVAL_MS 25
+
+volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/released
 
 // RTC
 RTCZero rtc;
 
-//I2C LCD Screen
-LiquidCrystal_I2C lcd(0x27, 20, 4);
+// Solenoids
+typedef enum SolenoidState {
+  OPEN,
+  CLOSED
+} SolenoidState;
 
-// Tube position
-float drop_distance_cm;
-float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
-
+SolenoidState solenoid_one_state = CLOSED;
+SolenoidState solenoid_two_state = CLOSED;
 
 
 bool debug_ignore_timeouts = false;
@@ -157,7 +349,7 @@ void setup() {
   init_cfg();
 
   rtcInit(); //TODO: add screen to input actual time/date to init rtc with
-  RTDInit();
+  rtdInit();
   gpioInit();
   estopInit();
   motorInit();
