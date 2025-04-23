@@ -166,18 +166,20 @@ float getTideData(){
 }
 
 
+
 float getDropDistance(){
-    float drop_distance_cm;
+    float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
 
     // MODIFIED FOR TESTING PURPOSES
     return 10.0f;
 
     sendToPython("T");
-    // drop_distance_cm = getTideData();
+    // float drop_distance_cm = getTideData();
 
     // get the distance to drop from online or sd card
-    // TODO: finish implementing DIVA
-    while (1)
+    unsigned long start_time = millis();
+    unsigned long curr_time = start_time;
+    while (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time)
     {
         if (Serial.available()) {
             String data = Serial.readStringUntil('\n'); // Read full line
@@ -186,10 +188,18 @@ float getDropDistance(){
         }
         
         checkEstop();
+        curr_time = millis(); //Update curr_time
+
+    }
+
+
+    if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS <= curr_time) { //If timeout ocurred...
+      setAlarmFault(TOPSIDE_COMP_COMMS);
     }
 
     // if drop distance is -1000 then get SD card info
     if (drop_distance_cm == -1000) {
+        
         drop_distance_cm = getTideData();
     }
     // otherwise convert from meters to cm

@@ -54,6 +54,9 @@
 #define SOLENOID_ONE 3
 #define SOLENOID_TWO 4
 
+// Miscellaneous 
+#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 10 * 1000 //Wait for a maximum of 10 seconds for a reply from the topside computer
+
 // Temperature Sensors (P1-04RTD)
 typedef enum TempSensor {
   TEMP_SENSOR_ONE = 1, // TODO: Eventually change to more descriptive names, depending on what each sensor actually is measuring
@@ -98,6 +101,7 @@ typedef enum AlarmFault { // TODO: add SERIAL alarm state
   MOTOR,
   TUBE,
   ESTOP,
+  TOPSIDE_COMP_COMMS
 } AlarmFault;
 
 volatile StateEnum state = STANDBY; 
@@ -331,6 +335,11 @@ typedef enum SolenoidState {
 
 SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;
+
+
+bool debug_ignore_timeouts = false;
+
+
 
 /* Setup and Loop **************************************************************/
 void setup() {

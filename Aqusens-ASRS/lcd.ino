@@ -628,6 +628,9 @@ void alarmLCD() {
     case MOTOR:
       lcd.print("MOTOR");
       break;
+    case TOPSIDE_COMP_COMMS:
+      lcd.print("USB COMMS");
+      break;
     default:
       lcd.print("IRREGULAR");
       break;

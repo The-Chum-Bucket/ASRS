@@ -83,14 +83,10 @@ void resetMotor(void) {
  * @brief set motor speed to 0
  * @param double_check bool if motor speed needs to be set to some small number first
  * FIXME: why need the double_check
+ * FIXED: turns out when you write it normally it works
  */
-void turnMotorOff(bool double_check = 0) {
-    if (double_check) setMotorSpeed(3);
-    setMotorSpeed(0);
-    global_motor_state = OFF;
-}
 
-void turnMotorOff2() {
+void turnMotorOff() {
     setMotorSpeed(0);
     global_motor_state = OFF;
 }

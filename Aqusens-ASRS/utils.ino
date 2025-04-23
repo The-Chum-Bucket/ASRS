@@ -639,7 +639,12 @@ bool checkEstop() {
 bool magSensorRead() {
   // Reads the magnetic sensor input
   // Returns 1 if high, 0 if low
-  return P1.readDiscrete(HV_GPIO_SLOT, MAG_SENSOR_IO_SLOT);
+  if (P1.readDiscrete(HV_GPIO_SLOT, MAG_SENSOR_IO_SLOT)) {
+    motor_pulses = 0; //0 is "home position", tube is inside of the docking chamber
+    return true;
+  }
+  else 
+    return false;
 }
 
 /**
@@ -659,4 +664,33 @@ float readRTD(TempSensor sensor_num) {
  */
 void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
+ }
+
+/**
+ * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
+ *        being incremented/decremented too quickly
+ * 
+ * @param last_key_pressed 
+ * @return char 
+ */
+char pressAndHold(uint8_t last_key_pressed) {
+  //uint8_t currKey = getKeyPress();
+  unsigned long start_time = millis();
+  unsigned long curr_time = millis();
+
+  while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
+    if (getKeyPress() != last_key_pressed) {
+      return 0; //Target key has been let go
+    }
+    curr_time = millis();
+  }
+
+  return last_key_pressed;
+}
+
+void setAlarmFault(AlarmFault fault_type) {
+  if (fault_type == TOPSIDE_COMP_COMMS && debug_ignore_timeouts) //Global flag, set when want to ignore comms timeouts, returns without setting alarm
+    return;
+  state = ALARM;
+  fault = fault_type;
 }
