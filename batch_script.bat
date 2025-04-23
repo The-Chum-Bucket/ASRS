@@ -26,6 +26,6 @@ python -m pip install requests pyserial
 
 :: change this to the command that is used to run the program on the actual Aqusens computer
 echo Running AqusensComm.py...
-"C:/Users/deeba/AppData/Local/Microsoft/WindowsApps/python3.11.exe" "\\wsl.localhost\Ubuntu\home\deebakhosravi\cpe350\aqusens-capstone\AqusensComm.py"
-
+::"C:/Users/deeba/AppData/Local/Microsoft/WindowsApps/python3.11.exe" "\\wsl.localhost\Ubuntu\home\deebakhosravi\cpe350\aqusens-capstone\AqusensComm.py"
+python3 AqusensComm.py
 endlocal

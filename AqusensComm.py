@@ -25,7 +25,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 
 def setup():
     try:
-        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=None)
         time.sleep(2)  # Give Arduino time to reset
         print(f"Connected to {SERIAL_PORT}")
         return ser
@@ -261,25 +261,27 @@ def flush(ser):
         if ser and ser.is_open:
             ser.close()
 
+def handle_command(command, ser):
+    if command == "T":
+        tide_level = queryForWaterLevel()
+        print(f"Tide level is {tide_level}")
+        ser.write((str(tide_level) + "\n").encode())
+    elif command == "S":
+        communicate(ser)
+    elif command == "F":
+        flush(ser)
+    else:
+        print(f"Unknown command received: {command}")
+
 if __name__ == "__main__":
     ser = setup()
     while ser is None:
         print(f"Unable to set up serial connection. Retrying...")
         ser = setup()
 
-    while(1):
-        if ser is None or not ser.is_open:
-            print(f"Unable to set up serial connection. Retrying...")
-            ser = setup()
-            continue
-        write_to = readCommand(ser)
-        if write_to is None:
-            continue
-        if write_to == "T":
-            tide_level = queryForWaterLevel()
-            print(f"Tide level is {tide_level}")
-            ser.write((str(tide_level) + "\n").encode())    # Send tide data over
-        elif write_to == "S":
-            communicate(ser)
-        elif write_to == "F":
-            flush(ser)
+    try:
+        while True:
+            command = ser.readline().decode().strip()
+            handle_command(command, ser)
+    except KeyboardInterrupt:
+            sigint_handler(None, None)
