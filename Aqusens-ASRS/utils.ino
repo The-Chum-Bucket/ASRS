@@ -89,10 +89,10 @@ void onLowTrigger() {
   // TODO: ?should we turn things off here
 }
 
-void setAlarmFault(AlarmFault f) {
-  state = ALARM;
-  fault = f;
-}
+// void setAlarmFault(AlarmFault f) {
+//   state = ALARM;
+//   fault = f;
+// }
 
 /**
  * @brief update timer alarm for given time
@@ -666,27 +666,27 @@ void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
  }
 
-/**
- * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
- *        being incremented/decremented too quickly
- * 
- * @param last_key_pressed 
- * @return char 
- */
-char pressAndHold(uint8_t last_key_pressed) {
-  //uint8_t currKey = getKeyPress();
-  unsigned long start_time = millis();
-  unsigned long curr_time = millis();
+// /**
+//  * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
+//  *        being incremented/decremented too quickly
+//  * 
+//  * @param last_key_pressed 
+//  * @return char 
+//  */
+// char pressAndHold(uint8_t last_key_pressed) {
+//   //uint8_t currKey = getKeyPress();
+//   unsigned long start_time = millis();
+//   unsigned long curr_time = millis();
 
-  while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
-    if (getKeyPress() != last_key_pressed) {
-      return 0; //Target key has been let go
-    }
-    curr_time = millis();
-  }
+//   while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
+//     if (getKeyPress() != last_key_pressed) {
+//       return 0; //Target key has been let go
+//     }
+//     curr_time = millis();
+//   }
 
-  return last_key_pressed;
-}
+//   return last_key_pressed;
+// }
 
 void setAlarmFault(AlarmFault fault_type) {
   if (fault_type == TOPSIDE_COMP_COMMS && debug_ignore_timeouts) //Global flag, set when want to ignore comms timeouts, returns without setting alarm

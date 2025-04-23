@@ -20,7 +20,7 @@
 #define FREE_FALL_IND           (2)
 #define RAISE_DIST_PADDING_CM   (10.0f)
 
-PositionConfig_t pos_cfg = {0};
+//PositionConfig_t pos_cfg = {0};
 
 void setPositionCfg(PositionConfig_t& cfg) {
     pos_cfg = cfg;
