@@ -170,9 +170,6 @@ float getTideData(){
 float getDropDistance(){
     float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
 
-    // MODIFIED FOR TESTING PURPOSES
-    return 10.0f;
-
     sendToPython("T");
     // float drop_distance_cm = getTideData();
 
