@@ -41,7 +41,13 @@ void rtcInit() {
 
   const TimesConfig_t& times_cfg = getGlobalCfg().times_cfg;
 
-  rtc.setEpoch(1740580200);
+  uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
+
+  if (epoch == 0) { //err, likely timeout in communication with topside computer
+    epoch = 1746104460; //Default to May 1, 2025 at midnight
+  }
+
+  rtc.setEpoch(epoch);
   sample_interval.Year = 0;
   sample_interval.Month = 0;
   sample_interval.Day = 0;
@@ -666,31 +672,45 @@ void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
  }
 
-// /**
-//  * @brief provides a delay for press-and-hold functionality, prevents adjusted values from 
-//  *        being incremented/decremented too quickly
-//  * 
-//  * @param last_key_pressed 
-//  * @return char 
-//  */
-// char pressAndHold(uint8_t last_key_pressed) {
-//   //uint8_t currKey = getKeyPress();
-//   unsigned long start_time = millis();
-//   unsigned long curr_time = millis();
 
-//   while(curr_time - start_time < PRESS_AND_HOLD_INTERVAL_MS) {
-//     if (getKeyPress() != last_key_pressed) {
-//       return 0; //Target key has been let go
-//     }
-//     curr_time = millis();
-//   }
-
-//   return last_key_pressed;
-// }
-
+/**
+ * @brief sets the alarm fault type and sends ASRS into alarm state
+ * 
+ * @param fault_type the type of fault (E-stop, communication timeout, motor alarm, etc.)
+ */
 void setAlarmFault(AlarmFault fault_type) {
   if (fault_type == TOPSIDE_COMP_COMMS && debug_ignore_timeouts) //Global flag, set when want to ignore comms timeouts, returns without setting alarm
     return;
   state = ALARM;
   fault = fault_type;
+}
+
+
+/**
+ * @brief Allows ASRS to request time from topside computer on startup
+ * 
+ * @return Current time in Unix Epoch Form, or 0 if communication times out
+ */
+
+ uint32_t requestEpochTime(void) {
+  sendToPython(REQUEST_TIME);
+
+  unsigned long start_time = millis();
+  unsigned long curr_time = start_time;
+
+  while (curr_time - start_time < TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
+    if (Serial.available()) {
+      String received = Serial.readStringUntil('\n'); // Read until newline
+      received.trim(); // Remove whitespace or trailing chars
+      
+      if (received.length() > 0) {
+        uint32_t epoch = received.toInt(); // Convert to uint32_t
+        return epoch;
+      }
+    }
+    curr_time = millis(); 
+  }
+
+  // Timeout, return 0 or some error value
+  return 0;
 }

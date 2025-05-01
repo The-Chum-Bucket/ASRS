@@ -147,6 +147,13 @@ int8_t cursor_y = 2; // keeps track of current cursor position
 #define PIER_DEFAULT_DIST_CM  (762.0f)
 #define TIDE_FILE "tides.txt"
 
+// Python Script Comms
+#define TOGGLE_PUMP       "F"
+#define BEGIN_SAMPLE      "S"
+#define REQUEST_TIME      "C"
+#define REQUEST_TIDE_DATA "T"
+
+
 // ========================================================================
 // Struct Definitions
 // ========================================================================

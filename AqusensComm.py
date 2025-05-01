@@ -261,6 +261,18 @@ def flush(ser):
         if ser and ser.is_open:
             ser.close()
 
+def sendEpochTime(ser):
+    try:
+        # Get the current time in Unix Epoch format
+        epoch_time = int(time.time())
+        print(f"Sending epoch time: {epoch_time}")
+        
+        # Send the time followed by newline
+        ser.write((str(epoch_time) + "\n").encode())
+    except Exception as e:
+        print(f"Error sending epoch time: {e}")
+    return epoch_time
+
 if __name__ == "__main__":
     ser = setup()
     while ser is None:
@@ -278,8 +290,10 @@ if __name__ == "__main__":
         if write_to == "T":
             tide_level = queryForWaterLevel()
             print(f"Tide level is {tide_level}")
-            ser.write((str(tide_level) + "\n").encode())    # Send tide data over
-        elif write_to == "S":
+            ser.write((str(tide_level) + "\n").encode())    # Send tide data over to ASRS
+        elif write_to == "S": # Requesting sample to begin
             communicate(ser)
-        elif write_to == "F":
+        elif write_to == "F": # Requesting pump to start, but don't sample
             flush(ser)
+        elif write_to == "C": # Requesting current time in Unix Epoch format (C for "clock" (b/c T was taken...))
+            sendEpochTime(ser)
