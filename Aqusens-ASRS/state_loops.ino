@@ -97,16 +97,19 @@ void ensureSampleStartLoop() {
  */
 void releaseLoop() {
 
-  resetLCD();
-  static char pos[6];
+  // resetLCD();
+  // static char pos[6];
   
 
   drop_distance_cm = getDropDistance();
 
+  // drop_distance_cm = 30; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+
+
   // actually drop the tube
   while (state == RELEASE){
-    snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
-    releaseLCD(pos);
+    // snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses));
+    // releaseLCD(pos);
 
     if (isMotorAlarming()) setAlarmFault(MOTOR);
 
@@ -188,8 +191,9 @@ void recoverLoop() {
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state
       state = SAMPLE;
     }
-    snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
-    recoverLCD(pos);
+
+    // snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
+    // recoverLCD(pos);
   }
 }
 
@@ -201,6 +205,7 @@ void recoverLoop() {
 void sampleLoop() {
   resetLCD();
 
+  
 
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
@@ -284,7 +289,8 @@ void tubeFlushLoop() {
   char min_time[3]; // "00"
 
   uint32_t curr_time = millis();
-  uint32_t end_time = curr_time + (60 * tube_flush_time.Minute * 1000) + (tube_flush_time.Second * 1000);
+  // uint32_t end_time = curr_time + (60 * tube_flush_time.Minute * 1000) + (tube_flush_time.Second * 1000);
+  uint32_t end_time = curr_time + (60 * 0 * 1000) + (15 * 1000);
 
   int seconds_remaining, minutes_remaining;
   uint32_t last_toggle_time = curr_time; // Track the last time temp_flag was toggled
@@ -302,44 +308,44 @@ void tubeFlushLoop() {
     flushSystem();
     state = DRY;
 
-    // Calculate remaining time, accounting for millis() overflow
-    uint32_t millis_remaining;
-    if (end_time > millis()) {
-      millis_remaining = end_time - millis();
-    } else {
-      // Handle overflow case
-      millis_remaining = (UINT32_MAX - millis()) + end_time;
-    }
+  //   // Calculate remaining time, accounting for millis() overflow
+  //   uint32_t millis_remaining;
+  //   if (end_time > millis()) {
+  //     millis_remaining = end_time - millis();
+  //   } else {
+  //     // Handle overflow case
+  //     millis_remaining = (UINT32_MAX - millis()) + end_time;
+  //   }
 
-    seconds_remaining = millis_remaining / 1000;
-    minutes_remaining = seconds_remaining / 60;
+  //   seconds_remaining = millis_remaining / 1000;
+  //   minutes_remaining = seconds_remaining / 60;
 
-    // Format seconds with leading zero if necessary
-    if (seconds_remaining % 60 > 9) {
-      snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-    } else {
-      snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
-    }
+  //   // Format seconds with leading zero if necessary
+  //   if (seconds_remaining % 60 > 9) {
+  //     snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
+  //   } else {
+  //     snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
+  //   }
 
-    // Format minutes with leading zero if necessary
-    if (minutes_remaining > 9) {
-      snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-    } else {
-      snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
-    }
+  //   // Format minutes with leading zero if necessary
+  //   if (minutes_remaining > 9) {
+  //     snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
+  //   } else {
+  //     snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
+  //   }
 
-    // Toggle temp_flag every second
-    if (millis() - last_toggle_time >= 1000) {
-      temp_flag = true; // Toggle temp_flag
-      last_toggle_time = millis(); // Update the last toggle time
-    }
+  //   // Toggle temp_flag every second
+  //   if (millis() - last_toggle_time >= 1000) {
+  //     temp_flag = true; // Toggle temp_flag
+  //     last_toggle_time = millis(); // Update the last toggle time
+  //   }
 
-    // Update LCD with remaining time
-    flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
+  //   // Update LCD with remaining time
+  //   flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
 
-    if (temp_flag)
-      temp_flag = false;
-  }
+  //   if (temp_flag)
+  //     temp_flag = false;
+   }
 
   // TODO: send all the temperature buffer to pc to log
 
@@ -364,7 +370,11 @@ void dryLoop() {
     checkEstop();
 
     if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time) { //If timeout ocurred...
-      setAlarmFault(TOPSIDE_COMP_COMMS);
+      if (debug_ignore_timeouts)
+        state = STANDBY;
+      else 
+        setAlarmFault(TOPSIDE_COMP_COMMS);
+      
       continue;
     }
 
@@ -389,7 +399,7 @@ void dryLoop() {
     //     Serial.read();  // Discard extra data
     //   }
 
-      state = STANDBY;
+    state = STANDBY;
     //}
   }
   // setMotorSpeed(0);

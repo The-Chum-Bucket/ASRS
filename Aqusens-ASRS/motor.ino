@@ -54,9 +54,9 @@ inline uint32_t speedToFreq(float cm_per_sec) {
  * @param cm_per_sec speed to set the motor to
  */
 void setMotorSpeed(float cm_per_sec) {
-    static float speed = 0.0f;
+    //static float speed = 0.0f;
     
-    if (cm_per_sec == speed) return; // TODO: ?do i need to added float padding for equality
+    //if (cm_per_sec == speed) return; // TODO: danny what the hell ?do i need to added float padding for equality
 
     if (cm_per_sec < 0) {
         setMotorDir(CCW); //Down
@@ -64,7 +64,7 @@ void setMotorSpeed(float cm_per_sec) {
         setMotorDir(CW);  //Up
     }
 
-    speed = cm_per_sec;
+    //speed = cm_per_sec;
     setMotorFreq(speedToFreq(abs(cm_per_sec)));
 }
 
@@ -98,6 +98,11 @@ void turnMotorOff() {
  */
 void setMotorFreq(uint32_t frequency) {
     //Disables timer clock, disabling output
+    // Serial.print("STATE IS ");
+    // Serial.print(state);
+    // Serial.print("   SETTING FREQ TO ");
+    // Serial.println(frequency);
+
     if (frequency == 0) {
         TC5->COUNT16.CTRLA.bit.ENABLE = 0;
         return;

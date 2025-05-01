@@ -11,8 +11,8 @@
 #define PULSES_PER_REV 1600 //Setting (set by dip switches on the stepper motor or in stepper software) of pulses per motor revolution
 
 // All inputs should be in cm, all outputs will then be in cm as well for the macros below
-#define PULSES_TO_DISTANCE(num_pulses) ((pulses * PI * 2 * REEL_RADIUS)/(PULSES_PER_REV * GEARBOX_RATIO)) //Converts a number of pulses to a distance in cm
-#define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS)) // Converts a distance into the corresponding # of pulses from home
+// #define PULSES_TO_DISTANCE(num_pulses) ((pulses * PI * 2 * REEL_RADIUS)/(PULSES_PER_REV * GEARBOX_RATIO)) //Converts a number of pulses to a distance in cm
+// #define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS)) // Converts a distance into the corresponding # of pulses from home
 
 #define SAFE_RISE_SPEED_CM_SEC  (3.0f)
 #define SAFE_DROP_DIST_CM       (10.0f)
@@ -57,8 +57,12 @@ void homeTube() {
 bool dropTube(unsigned int distance_cm) {
   unsigned long start_time = millis();
   unsigned long curr_time = millis();
+  unsigned long last_lcd_update = millis();
+  char pos[6];
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
+
+  resetLCD();
 
   setMotorSpeed(-pos_cfg.drop_speed_cm_sec/4);
   delay(100);
@@ -66,9 +70,24 @@ bool dropTube(unsigned int distance_cm) {
   delay(100);
   setMotorSpeed(-pos_cfg.drop_speed_cm_sec);
 
+  snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
+  releaseLCD(pos);
 
   while (motor_pulses <= final_step_count && curr_time < start_time + TIMEOUT_TIME_MS) {
+    
+    if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+      setAlarmFault(ESTOP);
+      return false;
+    }
+
+    if (curr_time - last_lcd_update > 50) { //Update every 50ms
+      snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses)/ 100.0f);
+      releaseLCD(pos);
+      last_lcd_update = millis();
+    }
+
     curr_time = millis();
+    
   }
 
   turnMotorOff();
@@ -80,24 +99,58 @@ bool dropTube(unsigned int distance_cm) {
   return true;
 }
 
+#define ALIGNMENT_TUBE_OPENING_DIST 208 + 20 // 208cm, plus 20cm of buffer
+#define NEARING_TUBE_DIST 15 // slow down to a crawl at 15 cm from the magnet
+
+
 bool retrieveTube(float distance_cm) {
   unsigned long start_time = millis();
   unsigned long curr_time = millis();
+  unsigned long last_lcd_update = millis();
+  static char pos[6];
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
 
-  setMotorSpeed(pos_cfg.drop_speed_cm_sec/4);
+  setMotorSpeed(pos_cfg.raise_speed_cm_sec/4);
   delay(100);
-  setMotorSpeed(pos_cfg.drop_speed_cm_sec/2);
+  setMotorSpeed(pos_cfg.raise_speed_cm_sec/2);
   delay(100);
-  setMotorSpeed(pos_cfg.drop_speed_cm_sec);
+  setMotorSpeed(pos_cfg.raise_speed_cm_sec);
 
+  Serial.print("FINAL STEP COUNT ");
+  Serial.println(final_step_count);
 
-  while (motor_pulses >= final_step_count && curr_time < start_time + TIMEOUT_TIME_MS && !magSensorRead()) {
+  while (motor_pulses >= final_step_count && curr_time < start_time + TIMEOUT_TIME_MS) {
+    if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+      setAlarmFault(ESTOP);
+      return false;
+    }
+
+    if (curr_time - last_lcd_update > 50) { //Update every 50ms
+      snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses)/ 100.0f);
+      recoverLCD(pos);
+      last_lcd_update = millis();
+    }
+
+    if (magSensorRead()) {
+      break;
+    }
+
+    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST && PULSES_TO_DISTANCE(motor_pulses) > NEARING_TUBE_DIST) {
+      setMotorSpeed(pos_cfg.raise_speed_cm_sec / 4); //Slow motor to 1/4 normal speed
+    }
+
+    else if (PULSES_TO_DISTANCE(motor_pulses) < NEARING_TUBE_DIST) {
+      setMotorSpeed(pos_cfg.raise_speed_cm_sec / 10); //Slow to 10th of normal speed for alignment
+    }
+
     curr_time = millis();
   }
 
   turnMotorOff();
+  // while (1) {
+  //   turnMotorOff();
+  // }
 
   if (curr_time >= start_time + TIMEOUT_TIME_MS) {
     return false; //Timed out, went 30s without actually stopping
@@ -115,9 +168,9 @@ bool retrieveTube(float distance_cm) {
 #define LIFT_SPEED_CM_S     (2.0f)
 #define HOME_SPEED_CM_S     (-2.0f)
 
-void liftup_tube(bool& tube_state) {
-  if (tube_state) //If tube already lifted
-    return;
+void liftupTube() {
+  // if (tube_state) //If tube already lifted
+  //   return;
   
   setMotorSpeed(LIFT_SPEED_CM_S);
   while(magSensorRead()) {}; //Sit in this loop, waiting for the mag sensor to stop sensing the tube magnet
@@ -133,8 +186,8 @@ void liftup_tube(bool& tube_state) {
  * @param tube_state current tube state, true if lifted, false if resting
  */
 
-void unlift_tube(bool& tube_state) { // Resets tube back to home position after being lifted to dump excess sea/flushing water
-    if (!tube_state) return; 
+void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing water
+    //if (!tube_state) return; 
 
     setMotorSpeed(HOME_SPEED_CM_S);
     
@@ -150,8 +203,8 @@ void tube_home_funcs(bool lift) {
     static bool is_tube_up = false;
 
     if (lift) {
-        liftup_tube(is_tube_up);
+        liftupTube();
     } else {
-        unlift_tube(is_tube_up);
+        unliftTube();
     }
 }

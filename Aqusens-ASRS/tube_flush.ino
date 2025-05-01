@@ -5,59 +5,68 @@ void flushDevice(int sec) {
   delay(sec * 1000);
 }
 
-void drySampler(int sec) {
+void drySampleTube(int sec) {
   updateSolenoid(CLOSED, SOLENOID_ONE);
   updateSolenoid(CLOSED, SOLENOID_TWO);
 
   delay(sec * 1000);
 }
 
-void homeTube3() {
-  while (!dropTube(5.0f));
-  setMotorSpeed(HOME_TUBE_SPD_CM_S);
-  while (!magSensorRead());
-  turnMotorOff();
-}
+// void homeTube3() {
+//   while (!dropTube(5.0f));
+//   setMotorSpeed(HOME_TUBE_SPD_CM_S);
+//   while (!magSensorRead());
+//   turnMotorOff();
+// }
 
-void dumpTube() {
-  if (!magSensorRead()) {
-    homeTube3();
-  }
+// void dumpTube() {
+//   if (!magSensorRead()) {
+//     homeTube3();
+//   }
 
-  setMotorSpeed(HOME_TUBE_SPD_CM_S);
-  while (magSensorRead());
-  turnMotorOff();
-}
+//   setMotorSpeed(HOME_TUBE_SPD_CM_S);
+//   while (magSensorRead());
+//   turnMotorOff();
+// }
 
 // TODO: will timing need to be redone for a different tubing length? Will tubing length be changed? (small tubing connected to Aqusens)
 void flushSystem() {
-  // TODO: turn on Aqusens pump
 
-  // DUMP TUBE
-  dumpTube();
+  /*
+  *   TODO: Replace all of pseudo-function calls to aqusens comms with real ones
+  */
 
-  // AIR BUBBLE
-  drySampler(10); // TODO: Set to 90s (1:30 for air to reach Aqusens)
-
-  // TODO: turn off Aqusens pump
-
-  // DROP TUBE
-  while (!dropTube(10.0f)); // TODO: Set to a real distance
+  //hard coded at the moment but 
+  //int secondsRemaining = 5 + 
   
+  // DUMP TUBE
+  liftupTube(); //Dump remainder of sample
+
+  drySampleTube(5); //5s delay for draining tube
+  unliftTube(); //Return tube to home position
+  
+  // AIR BUBBLE
+  /*sendToAqusens(ENABLE_PUMP)*/
+  //delay((90 + 10)*1000) //Delay for 90sec, plus 10s buffer
+  /*sendToAqusens(DISABLE_PUMP)*/
+
   // FLUSH LINE (and not Aqusens)
-  updateSolenoid(OPEN, SOLENOID_ONE);
-
-  // RAISE TUBE to dump position
-  dumpTube();
-
-  // TODO: turn on Aqusens pump
+  dropTube(30); //Drop down 30cm
+  updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
+  homeTube(); //Start to bring the tube home
+  updateSolenoid(CLOSED, SOLENOID_ONE); // Stop flushing line
 
   // FLUSH AQUSENS
-  flushDevice(10); // TODO: Set to 180s (3:00) (30s for water to reach Aqusens, 2:30 of flushing)
+  flushDevice(10); // TODO: Set to 180s (3:00) (30s for water to reach Aqusens, 2:30 of flushing),
+                   // start Aqusens pump
   
   // AIR "BUBBLE" - drain entire system (all Aqusens lines dry)
-  drySampler(10);// TODO: Set to 150s (2:30) (2:30 for Aqusens to be drained/dry)
+  /*sendToAqusens(ENABLE_PUMP)*/
+  //delay for 45s to drain system
+  /*sendToAqusens(DISABLE_PUMP)*/
+
   
   // HOME TUBE
-  homeTube3();
+  dropTube(3);
+  homeTube();
 }
