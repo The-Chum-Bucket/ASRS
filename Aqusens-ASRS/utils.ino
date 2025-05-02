@@ -627,6 +627,7 @@ bool checkEstop() {
   if (digitalRead(A1) == 0) {
     estop_pressed = 1;
     // setAlarmFault(ESTOP); // ? i dont think this is needed
+    setAlarmFault(ESTOP);
     return true; //estop is pressed
   }
 
@@ -673,7 +674,7 @@ void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
  }
 
- bool pumpControl(String pump_action) {
+bool pumpControl(String pump_action) {
   sendToPython(pump_action);
 
   unsigned long curr_time = millis();

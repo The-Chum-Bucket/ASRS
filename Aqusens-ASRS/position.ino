@@ -5,28 +5,6 @@
  */
 
 
-#define REEL_RADIUS 5  //The gearbox reel's radius, currently is 5cm (eventually move into a config.ino)
-#define GEARBOX_RATIO  5 // Geatbox ratio is 5:1, this number states how many motor turns equal one gearbox turn
-#define TIMEOUT_TIME_MS 30 * 1000 //30 sec
-#define PULSES_PER_REV 1600 //Setting (set by dip switches on the stepper motor or in stepper software) of pulses per motor revolution
-
-// All inputs should be in cm, all outputs will then be in cm as well for the macros below
-// #define PULSES_TO_DISTANCE(num_pulses) ((pulses * PI * 2 * REEL_RADIUS)/(PULSES_PER_REV * GEARBOX_RATIO)) //Converts a number of pulses to a distance in cm
-// #define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS)) // Converts a distance into the corresponding # of pulses from home
-
-#define SAFE_RISE_SPEED_CM_SEC  (3.0f)
-#define SAFE_DROP_DIST_CM       (10.0f)
-#define NUM_PHASES              (4UL)
-#define FREE_FALL_IND           (2)
-#define RAISE_DIST_PADDING_CM   (10.0f)
-
-//PositionConfig_t pos_cfg = {0};
-
-// void setPositionCfg(PositionConfig_t& cfg) {
-//     pos_cfg = cfg;
-//     return;
-// }
-
 /**
  * @brief returns tube to home position at constant speed
  *        Re-homes the tube during initializing and calibrate state
@@ -73,10 +51,9 @@ bool dropTube(unsigned int distance_cm) {
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
   releaseLCD(pos);
 
-  while (motor_pulses <= final_step_count && curr_time < start_time + TIMEOUT_TIME_MS) {
+  while (motor_pulses <= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     
     if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
-      setAlarmFault(ESTOP);
       return false;
     }
 
@@ -92,15 +69,12 @@ bool dropTube(unsigned int distance_cm) {
 
   turnMotorOff();
 
-  if (curr_time >= start_time + TIMEOUT_TIME_MS) {
+  if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     return false; //Timed out, went 30s without actually stopping
   }
 
   return true;
 }
-
-#define ALIGNMENT_TUBE_OPENING_DIST 208 + 20 // 208cm, plus 20cm of buffer
-#define NEARING_TUBE_DIST 15 // slow down to a crawl at 15 cm from the magnet
 
 
 bool retrieveTube(float distance_cm) {
@@ -117,12 +91,11 @@ bool retrieveTube(float distance_cm) {
   delay(100);
   setMotorSpeed(RAISE_SPEED_CM_SEC);
 
-  Serial.print("FINAL STEP COUNT ");
-  Serial.println(final_step_count);
+  // Serial.print("FINAL STEP COUNT ");
+  // Serial.println(final_step_count);
 
-  while (motor_pulses >= final_step_count && curr_time < start_time + TIMEOUT_TIME_MS) {
+  while (motor_pulses >= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
-      setAlarmFault(ESTOP);
       return false;
     }
 
@@ -133,14 +106,15 @@ bool retrieveTube(float distance_cm) {
     }
 
     if (magSensorRead()) {
+      turnMotorOff();
       break;
     }
 
-    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST && PULSES_TO_DISTANCE(motor_pulses) > NEARING_TUBE_DIST) {
+    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST && PULSES_TO_DISTANCE(motor_pulses) > NEARING_HOME_DIST) {
       setMotorSpeed(RAISE_SPEED_CM_SEC / 4); //Slow motor to 1/4 normal speed
     }
 
-    else if (PULSES_TO_DISTANCE(motor_pulses) < NEARING_TUBE_DIST) {
+    else if (PULSES_TO_DISTANCE(motor_pulses) < NEARING_HOME_DIST) {
       setMotorSpeed(RAISE_SPEED_CM_SEC / 10); //Slow to 10th of normal speed for alignment
     }
 
@@ -148,11 +122,8 @@ bool retrieveTube(float distance_cm) {
   }
 
   turnMotorOff();
-  // while (1) {
-  //   turnMotorOff();
-  // }
 
-  if (curr_time >= start_time + TIMEOUT_TIME_MS) {
+  if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     return false; //Timed out, went 30s without actually stopping
   }
 

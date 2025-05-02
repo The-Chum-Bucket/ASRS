@@ -1,6 +1,8 @@
-// void setSDCfg(SDConfig_t& cfg) {
-//     sd_cfg = cfg;
-// }
+/**
+ * @brief Initializes the SD card communication, waits for SD.begin to return.
+ * 
+ * @return float offset distance for tide in cm
+ */
 
 void initSD() {
     if (!SD.begin(SD_CS)){

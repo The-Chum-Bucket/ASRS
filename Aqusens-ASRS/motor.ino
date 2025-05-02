@@ -45,7 +45,7 @@ void setMotorDir(MotorDir dir) {
  * @return uint32_t converted motor frequency
  */
 inline uint32_t speedToFreq(float cm_per_sec) {
-  return cm_per_sec * MOTORSPEED_FACTOR;
+  return cm_per_sec * ((PULSES_PER_REV * GEARBOX_RATIO) / (2.0f * PI * REEL_RADIUS_CM));
 }
 
 

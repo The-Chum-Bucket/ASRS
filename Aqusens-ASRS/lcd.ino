@@ -298,7 +298,7 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag) {
   lcd.print("TEMP: ");
   
   if (temp_flag) {
-    lcd.print(readRTD(TEMP_SENSOR_ONE));
+    lcd.print(readRTD(FLUSHWATER_TEMP_SENSOR));
     lcd.print("C");
   }
 

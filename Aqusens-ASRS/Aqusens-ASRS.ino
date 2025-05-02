@@ -24,8 +24,8 @@
 #include <ArduinoJson.h>
 #include "config.h" // Config file, change global defines here (reel radius, flush timing, etc.)
 
-volatile StateEnum state = STANDBY; 
-volatile AlarmFault fault = NONE;
+volatile StateEnum state = STANDBY; //Global vars for tracking device state...
+volatile AlarmFault fault = NONE;   // and for tracking Alarm reason
 
 volatile uint32_t motor_pulses = 0; // Global position tracker, increments each pulse when lowering, decrements each pulse when raising 
                                     // (down is the "positive direction")
@@ -38,33 +38,17 @@ int8_t cursor_y = 2; // keeps track of current cursor position
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 
-volatile bool toggle = false;
+volatile bool toggle = false; //Used for square wave generation in Timer Interrupt
 MotorDir global_motor_state = OFF;
 float MOTORSPEED_FACTOR;
 
-
-
-//PositionConfig_t pos_cfg = {0};
-
 float drop_distance_cm;
-// float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
 
-// sd.ino
-// #define JSON_SIZE   (4096)
-//SDConfig_t sd_cfg = {0};
-
-// settings.ino
 tmElements_t next_sample_time, sample_interval, soak_time, dry_time, tube_flush_time, aqusens_flush_time;
 
 uint8_t last_setting_page = 4; // amount of settings pages
 uint8_t settings_page = 1; // current settings page
 
-// tube_flush.ino
-#define DROP_TUBE_DIST_CM       (40.0f)
-#define LIFT_SPEED_CM_S         (0.5f)
-#define HOME_TUBE_SPD_CM_S      (2.0f)
-
-#define FRESHWATER_TIME_TO_AQU (30)
 
 unsigned long FLUSH_TIME_S, AQUSENS_TIME_S, TOT_FLUSH_TIME_S;
 unsigned long AIR_GAP_TIME_MS, LAST_AIR_GAP_TIME_MS, WATER_RINSE_TIME_MS;
@@ -79,9 +63,7 @@ typedef enum FlushState {
   RINSE_AQUSENS,
 } FlushState;
 
-// utils.ino
-#define TIME_BASED_DEBOUNCE_WAIT_TIME_MS 35
-#define PRESS_AND_HOLD_INTERVAL_MS 25
+
 
 volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/released
 

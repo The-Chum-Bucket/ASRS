@@ -16,7 +16,6 @@ void calibrateLoop() {
   lcd.print("CALIBRATING...");
 
   if (checkEstop()) {
-    setAlarmFault(ESTOP);
     return;
   }  
    
@@ -205,22 +204,20 @@ void recoverLoop() {
 void sampleLoop() {
   resetLCD();
 
-  
-
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
 
   // TODO: wrap this in a meaningful function name (inline?)
   sendToPython("S");
-  // COMMENTED OUT FOR TESTING PURPOSES
-  // sendToPython("S");
+  delay(500); //Delay for a half second, wait for message to be processed...
+  sendToPython(String(SAMPLE_TIME_SEC));
 
   while (state == SAMPLE) 
   {
     sampleLCD();
 
 
-    if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
+    if (curr_time >= start_time + (1000 * SAMPLE_TIME_SEC) + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
     {
       setAlarmFault(TOPSIDE_COMP_COMMS);
       continue;
@@ -231,7 +228,7 @@ void sampleLoop() {
 
        // check if wanting temperature read
        if (data == "T") {
-         sendToPython(String((int)(readRTD(TEMP_SENSOR_ONE))));
+         sendToPython(String((int)(readRTD(SAMPLE_TEMP_SENSOR))));
        }
 
        // only transition to flushing after Aqusens sample done
@@ -248,32 +245,6 @@ void sampleLoop() {
      }
 
     curr_time = millis();
-
-    //  if (Serial.available()) {
-    //    String data = Serial.readStringUntil('\n'); // Read full line
-
-    //    // check if wanting temperature read
-    //    if (data == "T") {
-    //      sendToPython(String((int)(readRTD(TEMP_SENSOR_ONE))));
-    //    }
-
-    //    // only transition to flushing after Aqusens sample done
-    //    else {
-    //      if (data == "D") {  
-    //        state = FLUSH_TUBE;
-    //      }
-    //    }
-
-    //    // Flush any remaining characters
-    //    while (Serial.available()) {
-    //        Serial.read();  // Discard extra data
-    //    }
-    //  }
-    state = FLUSH_TUBE;
-    // // TODO: if pc_signal
-    // if (Serial.available()) {
-    //   state = FLUSH_TUBE;
-    // }
   }
 }
 
@@ -282,74 +253,168 @@ void sampleLoop() {
  * 
  * No selection options
  */
+// void tubeFlushLoop() {
+//   resetLCD();
+//   bool temp_flag = true;
+//   char sec_time[3]; // "00"
+//   char min_time[3]; // "00"
+
+//   uint32_t curr_time = millis();
+//   // uint32_t end_time = curr_time + (60 * tube_flush_time.Minute * 1000) + (tube_flush_time.Second * 1000);
+//   uint32_t end_time = curr_time + (60 * 0 * 1000) + (15 * 1000);
+
+//   int seconds_remaining, minutes_remaining;
+//   uint32_t last_toggle_time = curr_time; // Track the last time temp_flag was toggled
+
+//   while (state == FLUSH_TUBE) {
+//     checkEstop();
+//     flushSystem();
+//     state = DRY;
+//    }
+//}
+
+
+/**
+ * @brief runs the system flush procedure, coded as a finite state machine with discrete steps, adjust timings in config.h
+ * 
+ */
 void tubeFlushLoop() {
-  resetLCD();
-  bool temp_flag = true;
-  char sec_time[3]; // "00"
-  char min_time[3]; // "00"
+  int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
+                                    AIR_BUBBLE_TIME_S + 
+                                    FLUSH_LINE_TIME_S +
+                                    FRESHWATER_TO_DEVICE_TIME_S + 
+                                    FRESHWATER_FLUSH_TIME_S +
+                                    FINAL_AIR_FLUSH_TIME_S + 
+                                   (FLUSHING_TIME_BUFFER));
 
-  uint32_t curr_time = millis();
-  // uint32_t end_time = curr_time + (60 * tube_flush_time.Minute * 1000) + (tube_flush_time.Second * 1000);
-  uint32_t end_time = curr_time + (60 * 0 * 1000) + (15 * 1000);
+  bool stagesStarted[] = {false, false, false, false, false, false};
+  // Represents the start of each stage for FSM
+  // Represents: Dumping the sample, Air Bubble, Line Flush, Freshwater Device Flush, Final Air Flush, and home tube
+ 
+  FlushStage curr_stage = DUMP_SAMPLE;
+  closeAllSolenoids();
 
-  int seconds_remaining, minutes_remaining;
-  uint32_t last_toggle_time = curr_time; // Track the last time temp_flag was toggled
+  unsigned long curr_time = millis();
+  unsigned long last_lcd_update_time = curr_time;
+  unsigned long end_time = curr_time + total_flush_time_ms;
+  unsigned long curr_stage_end_time = 0;
+
+  updateFlushTimer(end_time);
 
   while (state == FLUSH_TUBE) {
+    switch(curr_stage) {
+      DUMP_SAMPLE:
+        if (stagesStarted[DUMP_SAMPLE] == false) {
+          liftupTube();
+          stagesStarted[DUMP_SAMPLE] = true;
+          curr_stage_end_time = curr_time + (1000 * LIFT_TUBE_TIME_S);
+        }
+        if (curr_time >= curr_stage_end_time) {
+          // Lift tube state is done
+          unliftTube();
+          curr_stage = AIR_BUBBLE;
+        }
+        break;
+
+      AIR_BUBBLE:
+      if (stagesStarted[AIR_BUBBLE] == false) {
+        pumpControl(START_PUMP);
+        stagesStarted[AIR_BUBBLE] = true;
+        curr_stage_end_time = curr_time + (1000* AIR_BUBBLE_TIME_S);
+      }
+      if (curr_time >= curr_stage_end_time) {
+        pumpControl(STOP_PUMP);
+        curr_stage = FRESHWATER_LINE_FLUSH;
+      }
+        break;
+
+      FRESHWATER_LINE_FLUSH:
+        if (stagesStarted[FRESHWATER_LINE_FLUSH] == false) {
+          dropTube(DROP_TUBE_DIST_CM); //Drop down for line flush
+          updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
+          homeTube();
+          stagesStarted[FRESHWATER_LINE_FLUSH] = true;
+          curr_stage_end_time = curr_time + (1000 * FLUSH_LINE_TIME_S);
+        }
+        if (curr_time >= curr_stage_end_time) {
+          updateSolenoid(CLOSED, SOLENOID_ONE);
+          curr_stage = FRESHWATER_DEVICE_FLUSH;
+        }
+        break;
+
+      FRESHWATER_DEVICE_FLUSH:
+        if (stagesStarted[FRESHWATER_DEVICE_FLUSH] == false) {
+          end_time += flushDevice(); //Update end time if there was any waiting for flushing water to cool down.
+          stagesStarted[FRESHWATER_DEVICE_FLUSH] = true;
+          curr_stage_end_time = curr_time + (1000 * (FRESHWATER_TO_DEVICE_TIME_S + FRESHWATER_FLUSH_TIME_S));
+        }
+        if (curr_time >= curr_stage_end_time) {
+          closeAllSolenoids();
+          curr_stage = AIR_FLUSH;
+        }
+        break;
+
+      AIR_FLUSH:
+        if (stagesStarted[AIR_FLUSH] == false) {
+          pumpControl(START_PUMP);
+          stagesStarted[AIR_FLUSH] = true;
+          curr_stage_end_time = curr_time + (1000 * FINAL_AIR_FLUSH_TIME_S);
+        }
+        if (curr_time >= curr_stage_end_time) {
+          pumpControl(STOP_PUMP);
+        }
+        break;
+      HOME_TUBE:
+        if (stagesStarted[HOME_TUBE] == false) {
+          dropTube(3); //Drop 3 cm, want to overshoot the magnet
+          homeTube();
+          stagesStarted[HOME_TUBE] = true;
+          state = DRY;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    curr_time = millis();
     checkEstop();
+    updateFlushTimer(end_time);
+  }
 
-    // COMMENTED OUT FOR TESTING PURPOSES
-    // if done flushing, exit loop
-    // if (flushTube()) {
-    //   state = DRY;
-    //   break;
-    // }
 
-    flushSystem();
-    state = DRY;
+  // // DUMP TUBE
+  // liftupTube(); //Dump remainder of sample
+  // //drySampleTube(); //5s delay for draining tube
+  // unliftTube(); //Return tube to home position
+  
+  // // AIR BUBBLE
+  // //pumpControl(START_PUMP);
+  // //delay((90 + 10)*1000) //Delay for 90sec, plus 10s buffer REPLACE WITH NONBLOCKING
+  // pumpControl(STOP_PUMP);
 
-  //   // Calculate remaining time, accounting for millis() overflow
-  //   uint32_t millis_remaining;
-  //   if (end_time > millis()) {
-  //     millis_remaining = end_time - millis();
-  //   } else {
-  //     // Handle overflow case
-  //     millis_remaining = (UINT32_MAX - millis()) + end_time;
-  //   }
+  // // FLUSH LINE (and not Aqusens)
+  // dropTube(30); //Drop down 30cm
+  // updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
+  // homeTube(); //Start to bring the tube home
+  // updateSolenoid(CLOSED, SOLENOID_ONE); // Stop flushing line
 
-  //   seconds_remaining = millis_remaining / 1000;
-  //   minutes_remaining = seconds_remaining / 60;
+  // // FLUSH AQUSENS
+  // flushDevice(10); // TODO: Set to 180s (3:00) (30s for water to reach Aqusens, 2:30 of flushing),
+  //                  // start Aqusens pump
+  
+  // // AIR "BUBBLE" - drain entire system (all Aqusens lines dry)
+  // pumpControl(START_PUMP);
+  // //delay for 45s to drain system
+  // pumpControl(STOP_PUMP);
 
-  //   // Format seconds with leading zero if necessary
-  //   if (seconds_remaining % 60 > 9) {
-  //     snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-  //   } else {
-  //     snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
-  //   }
-
-  //   // Format minutes with leading zero if necessary
-  //   if (minutes_remaining > 9) {
-  //     snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-  //   } else {
-  //     snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
-  //   }
-
-  //   // Toggle temp_flag every second
-  //   if (millis() - last_toggle_time >= 1000) {
-  //     temp_flag = true; // Toggle temp_flag
-  //     last_toggle_time = millis(); // Update the last toggle time
-  //   }
-
-  //   // Update LCD with remaining time
-  //   flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
-
-  //   if (temp_flag)
-  //     temp_flag = false;
-   }
-
-  // TODO: send all the temperature buffer to pc to log
-
+  
+  // // HOME TUBE
+  // dropTube(3);
+  // homeTube();
 }
+
+
 
 /**
  * @brief DRY
