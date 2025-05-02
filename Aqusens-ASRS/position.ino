@@ -12,10 +12,36 @@
  */
 
 void homeTube() {
+  
+  dropTube(2); //Drop 5cm to ensure we are passed the magnet
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
     //Update LCD?
+    checkEstop();
+  }
+
+  motor_pulses = 0;
+
+  turnMotorOff();
+}
+
+/**
+ * @brief returns tube to home position at constant speed
+ *        Version for Tube Flush end_time so it can update LCD
+ *        Overloaded for code readability's sake
+ * @param end_time from tubeFlushLoop, the calculated end time from millis()
+ */
+
+ void homeTube(unsigned long end_time) {
+  
+  dropTube(2); //Drop 5cm to ensure we are passed the magnet
+  setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
+  
+  while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
+    //Update LCD?
+    checkEstop();
+    updateFlushTimer(end_time);
   }
 
   motor_pulses = 0;
@@ -40,8 +66,6 @@ bool dropTube(unsigned int distance_cm) {
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
 
-  resetLCD();
-
   setMotorSpeed(-DROP_SPEED_CM_SEC/4);
   delay(100);
   setMotorSpeed(-DROP_SPEED_CM_SEC/2);
@@ -49,7 +73,11 @@ bool dropTube(unsigned int distance_cm) {
   setMotorSpeed(-DROP_SPEED_CM_SEC);
 
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
-  releaseLCD(pos);
+  if (state == RELEASE) {
+    resetLCD();
+    releaseLCD(pos);
+  }
+    
 
   while (motor_pulses <= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     
@@ -57,7 +85,7 @@ bool dropTube(unsigned int distance_cm) {
       return false;
     }
 
-    if (curr_time - last_lcd_update > 50) { //Update every 50ms
+    if (state == RELEASE && curr_time - last_lcd_update > 50) { //Update every 50ms
       snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses)/ 100.0f);
       releaseLCD(pos);
       last_lcd_update = millis();
@@ -157,7 +185,7 @@ void liftupTube() {
  * @param tube_state current tube state, true if lifted, false if resting
  */
 
-void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing water
+void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing watep
     //if (!tube_state) return; 
 
     setMotorSpeed(HOME_SPEED_CM_S);

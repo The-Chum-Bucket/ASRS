@@ -100,9 +100,9 @@ void releaseLoop() {
   // static char pos[6];
   
 
-  drop_distance_cm = getDropDistance();
+  // drop_distance_cm = getDropDistance();
 
-  // drop_distance_cm = 30; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+  drop_distance_cm = 20; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
 
   // actually drop the tube
@@ -279,6 +279,7 @@ void sampleLoop() {
  * 
  */
 void tubeFlushLoop() {
+  resetLCD();
   int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
                                     AIR_BUBBLE_TIME_S + 
                                     FLUSH_LINE_TIME_S +
@@ -290,7 +291,7 @@ void tubeFlushLoop() {
   bool stagesStarted[] = {false, false, false, false, false, false};
   // Represents the start of each stage for FSM
   // Represents: Dumping the sample, Air Bubble, Line Flush, Freshwater Device Flush, Final Air Flush, and home tube
- 
+  
   FlushStage curr_stage = DUMP_SAMPLE;
   closeAllSolenoids();
 
@@ -300,11 +301,13 @@ void tubeFlushLoop() {
   unsigned long curr_stage_end_time = 0;
 
   updateFlushTimer(end_time);
+  
 
   while (state == FLUSH_TUBE) {
     switch(curr_stage) {
-      DUMP_SAMPLE:
+      case DUMP_SAMPLE:
         if (stagesStarted[DUMP_SAMPLE] == false) {
+          //Serial.println("STARTING DUMP");
           liftupTube();
           stagesStarted[DUMP_SAMPLE] = true;
           curr_stage_end_time = curr_time + (1000 * LIFT_TUBE_TIME_S);
@@ -316,23 +319,25 @@ void tubeFlushLoop() {
         }
         break;
 
-      AIR_BUBBLE:
+      case AIR_BUBBLE:
       if (stagesStarted[AIR_BUBBLE] == false) {
-        pumpControl(START_PUMP);
+        //Serial.println("STARTING AIR BUBBLE");
+        pumpControl(START_PUMP, end_time);
         stagesStarted[AIR_BUBBLE] = true;
         curr_stage_end_time = curr_time + (1000* AIR_BUBBLE_TIME_S);
       }
       if (curr_time >= curr_stage_end_time) {
-        pumpControl(STOP_PUMP);
+        pumpControl(STOP_PUMP, end_time);
         curr_stage = FRESHWATER_LINE_FLUSH;
       }
         break;
 
-      FRESHWATER_LINE_FLUSH:
+      case FRESHWATER_LINE_FLUSH:
         if (stagesStarted[FRESHWATER_LINE_FLUSH] == false) {
+          //Serial.println("STARTING FRESHWATER LINE FLUSH");
           dropTube(DROP_TUBE_DIST_CM); //Drop down for line flush
           updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
-          homeTube();
+          homeTube(end_time);
           stagesStarted[FRESHWATER_LINE_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * FLUSH_LINE_TIME_S);
         }
@@ -342,8 +347,9 @@ void tubeFlushLoop() {
         }
         break;
 
-      FRESHWATER_DEVICE_FLUSH:
+      case FRESHWATER_DEVICE_FLUSH:
         if (stagesStarted[FRESHWATER_DEVICE_FLUSH] == false) {
+          //Serial.println("STARTING FRESHWATER DEVICE FLUSH");
           end_time += flushDevice(); //Update end time if there was any waiting for flushing water to cool down.
           stagesStarted[FRESHWATER_DEVICE_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * (FRESHWATER_TO_DEVICE_TIME_S + FRESHWATER_FLUSH_TIME_S));
@@ -354,20 +360,23 @@ void tubeFlushLoop() {
         }
         break;
 
-      AIR_FLUSH:
+      case AIR_FLUSH:
         if (stagesStarted[AIR_FLUSH] == false) {
-          pumpControl(START_PUMP);
+          //Serial.println("STARTING AIR FLUSH");
+          pumpControl(START_PUMP, end_time);
           stagesStarted[AIR_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * FINAL_AIR_FLUSH_TIME_S);
         }
         if (curr_time >= curr_stage_end_time) {
-          pumpControl(STOP_PUMP);
+          pumpControl(STOP_PUMP, end_time);
+          curr_stage = HOME_TUBE;
         }
         break;
-      HOME_TUBE:
+      case HOME_TUBE:
         if (stagesStarted[HOME_TUBE] == false) {
-          dropTube(3); //Drop 3 cm, want to overshoot the magnet
-          homeTube();
+          //Serial.println("STARTING FINAL HOMING");
+          dropTube(2); //Drop 3 cm, want to overshoot the magnet
+          homeTube(end_time);
           stagesStarted[HOME_TUBE] = true;
           state = DRY;
         }
@@ -431,20 +440,21 @@ void dryLoop() {
   int seconds_remaining, minutes_remaining;
 
   resetLCD();
+  //homeTube();
   liftupTube();
   uint32_t end_time = curr_time + (60 * dry_time.Minute * 1000) + (dry_time.Second * 1000);
 
-  while (state == DRY && curr_time < millis()) {
+  while (state == DRY && end_time > millis()) {
     checkEstop();
 
-    if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > millis()) { //If timeout ocurred...
-      if (debug_ignore_timeouts)
-        state = STANDBY;
-      else 
-        setAlarmFault(TOPSIDE_COMP_COMMS);
+    // if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS < millis()) { //If timeout ocurred...
+    //   if (debug_ignore_timeouts)
+    //     state = STANDBY;
+    //   else 
+    //     setAlarmFault(TOPSIDE_COMP_COMMS);
       
-      continue;
-    }
+    //   continue;
+    // }
 
     // Calculate remaining time, accounting for millis() overflow
     if (end_time > millis()) {
@@ -478,9 +488,7 @@ void dryLoop() {
     dryLCD(min_time, sec_time, seconds_remaining % 4); 
   }
 
-  // bring tube home
   unliftTube();
-
   state = STANDBY;
 
   }

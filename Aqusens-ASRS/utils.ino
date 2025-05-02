@@ -674,13 +674,16 @@ void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
  }
 
-bool pumpControl(String pump_action) {
+bool pumpControl(String pump_action, unsigned long end_time) {
   sendToPython(pump_action);
 
   unsigned long curr_time = millis();
   unsigned long start_time = curr_time;
 
   while (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time) {
+    if (state == FLUSH_TUBE) {
+      updateFlushTimer(end_time);
+    }
     if (Serial.available()) {
       String data = Serial.readStringUntil('\n'); // Read full line
       if (data == "D") {

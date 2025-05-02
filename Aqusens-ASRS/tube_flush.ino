@@ -34,6 +34,7 @@ void closeAllSolenoids() {
 void updateFlushTimer(unsigned long end_time) {
   static unsigned long last_update_time = 0;
   static bool temp_flag = false;
+  static bool reached_zero = false;
 
   if (millis() - last_update_time >= 1000) {
       last_update_time = millis();
@@ -56,6 +57,14 @@ void updateFlushTimer(unsigned long end_time) {
       snprintf(sec_time, sizeof(sec_time), "%02lu", seconds_remaining % 60);
       snprintf(min_time, sizeof(min_time), "%02lu", minutes_remaining);
 
-      flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
+      if (!reached_zero && minutes_remaining == 0 && seconds_remaining == 0) {
+        reached_zero = true; //Prevents LCD from underflowing, just stays at zero
+      }
+      
+      if (!reached_zero)
+        flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
+      else {
+        flushLCD("00", "00", seconds_remaining % 4, temp_flag); //If exceeded the estimated flush time, then just print zeroes
+      }
   }
 }
