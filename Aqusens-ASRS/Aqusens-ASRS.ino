@@ -1,5 +1,5 @@
 //  -Aqusens-ASRS
-//  -Aqusens - Automated Sample Retrevial System V1.0
+//  -Aqusens - Automated Sample Retrevial System V2.0
 //  -Date of Last Revision: 2/26/25
 //  -Califonia Polytechnic State University
 //  -Bailey College of Science and Mathamatics Biology Department
@@ -37,24 +37,6 @@ int8_t cursor_y = 2; // keeps track of current cursor position
 // lcd.ino
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-// motor.ino
-#define SYSTEM_CLOCK_FREQ       (48000000)
-#define PRESCALER_VAL           (8)
-
-#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
-
-// TODO: these two enums are redundant @Jack
-typedef enum MotorDir {
-  CCW, //Lowering
-  CW,  //Raising
-  OFF
-} MotorDir;
-
-typedef enum MotorStatus {
-  RAISING,
-  LOWERING,
-  MOTOR_OFF
-} MotorStatus; // For lowering and raising the motor manually
 
 volatile bool toggle = false;
 MotorDir global_motor_state = OFF;
@@ -65,10 +47,9 @@ float MOTORSPEED_FACTOR;
 //PositionConfig_t pos_cfg = {0};
 
 float drop_distance_cm;
-float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
+// float tube_position_f; // Stores the current position of the sampler tube relative to the top of the tube in the home position
 
 // sd.ino
-// #define GMT_TO_PST  (8)
 // #define JSON_SIZE   (4096)
 //SDConfig_t sd_cfg = {0};
 

@@ -78,7 +78,7 @@ void rtcInit() {
  * 
  */
 void rtdInit() {
-  const char P1_04RTD_CONFIG[] = { 0x40, 0x03, 0x60, 0x01, 0x20, 0x02, 0x80, 0x00 };
+  const char P1_04RTD_CONFIG[] = { 0x40, 0x01, 0x60, 0x03, 0x20, 0x01, 0x80, 0x00 }; //Enable slots 1 and 2, Pt100, Celcius, High Side Burnout
   // Config data for RTD module, configures Pt1000 type sensor and Celcius units returned when read
   P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT);
   // Serial.println(P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT));  //sends the config data to the module in slot 1
@@ -667,9 +667,34 @@ float readRTD(TempSensor sensor_num) {
  * @brief provides the ability to send a value over serial
  * 
  * @param string_to_send the string to send over serial
+ * 
  */
 void sendToPython(String string_to_send) {
     Serial.println(string_to_send);
+ }
+
+ bool pumpControl(String pump_action) {
+  sendToPython(pump_action);
+
+  unsigned long curr_time = millis();
+  unsigned long start_time = curr_time;
+
+  while (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time) {
+    if (Serial.available()) {
+      String data = Serial.readStringUntil('\n'); // Read full line
+      if (data == "D") {
+        return true;
+      }
+
+      else {
+        setAlarmFault(TOPSIDE_COMP_COMMS);
+        return false;
+      }
+    }
+  }
+
+  setAlarmFault(TOPSIDE_COMP_COMMS);
+  return false; // Return false
  }
 
 

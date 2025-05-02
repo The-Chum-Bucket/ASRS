@@ -2,10 +2,11 @@
 #define CONFIG_H
 
 /************************* Python Script Comms *************************/
-#define TOGGLE_PUMP       "F"
+#define STOP_PUMP         "F"
 #define BEGIN_SAMPLE      "S"
 #define REQUEST_TIME      "C"
 #define REQUEST_TIDE_DATA "T"
+#define START_PUMP        "P"
 
 /************************* Default Timings *************************/
 #define DEFAULT_SAMPLE_INTERVAL_HOUR 4
@@ -34,6 +35,11 @@
 #define PULSES_TO_DISTANCE(num_pulses) ((num_pulses * PI * 2 * REEL_RADIUS)/(PULSES_PER_REV * GEARBOX_RATIO))
 #define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS))
 
+#define SYSTEM_CLOCK_FREQ       (48000000)
+#define PRESCALER_VAL           (8)
+
+#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
+
 /************************* Positioning Parameters (position.ino) *************************/
 #define NARROW_TUBE_CM        (15.0f) 
 #define TUBE_CM               (85.0f) 
@@ -47,13 +53,21 @@
 #define FREE_FALL_IND           (2)
 #define RAISE_DIST_PADDING_CM   (10.0f)
 
-/************************* Tube Flush Timings (tube_flush.ino) *************************/
+/************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
-#define LIFT_TUBE_TIME_S        (0.5f)
-#define DUMP_WATER_TIME_S       (5UL)
-#define ROPE_DROP_TIME_S        (40.0f / 15.0f)
-#define RINSE_ROPE_TIME_S       (20.0f)
-#define RINSE_TUBE_TIME_S       (5UL)
+#define LIFT_TUBE_TIME_S              (5.0f)
+#define AIR_BUBBLE_TIME_S             (90.0f)
+#define SAMPLE_TO_DEVICE_TIME_S       (90.0f)
+#define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
+#define FRESHWATER_TO_DEVICE_TIME_S   (35.0f)
+#define FRESHWATER_FLUSH_TIME_S       (150.0f)
+#define FINAL_AIR_FLUSH_TIME_S        (45.0f)
+#define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
+#define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
+// #define DUMP_WATER_TIME_S       (5UL)
+// #define ROPE_DROP_TIME_S        (40.0f / 15.0f)
+// #define RINSE_ROPE_TIME_S       (20.0f)
+// #define RINSE_TUBE_TIME_S       (5UL)
 
 // Aqusens timings
 #define AIR_GAP_TIME_S          (5)
@@ -141,5 +155,22 @@ typedef enum AlarmFault {
   ESTOP,
   TOPSIDE_COMP_COMMS
 } AlarmFault;
+
+//Stages for the flushing procedure
+typedef enum FlushStage { 
+  DUMP_SAMPLE               = 0,
+  AIR_BUBBLE                = 1,
+  FRESHWATER_LINE_FLUSH     = 2,
+  FRESHWATER_DEVICE_FLUSH   = 3,
+  AIR_FLUSH                 = 4,
+  HOME_TUBE                 = 5
+} FlushStage;
+
+typedef enum MotorDir {
+  CCW, //Lowering
+  CW,  //Raising
+  OFF
+} MotorDir;
+
 
 #endif

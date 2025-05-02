@@ -223,7 +223,7 @@ def communicate(ser):
         if ser and ser.is_open:
             ser.close()
 
-def flush(ser):
+def stopPump(ser):
     try:
         with open(READ_FILE, "r") as input, open(WRITE_FILE, "w") as output:
             # Stop Sample Collection -----------------------------------------
@@ -245,6 +245,45 @@ def flush(ser):
                 
                 # Process ACK
                 if recv[0] == "0" and recv[1:9].lower() == "stoppump":
+                    break   # Got a successful ACK
+        
+        # send done signal to Arduino
+        ser.write("D\n".encode())
+        input.close()
+        output.close()
+        
+    except serial.SerialException as e:
+        print(f"Serial error: {e}")
+        if ser and ser.is_open:
+            ser.close()
+    except FileNotFoundError:
+        print(f"File not found: {READ_FILE}")
+        if ser and ser.is_open:
+            ser.close()
+
+
+def startPump(ser):
+    try:
+        with open(READ_FILE, "r") as input, open(WRITE_FILE, "w") as output:
+            # Stop Sample Collection -----------------------------------------
+            while (1):
+                output.close()
+                output = open(WRITE_FILE, "w")
+
+                stop_sample = "StartPump()"
+                output.write(stop_sample)
+                output.flush()
+
+                # Wait for ACK
+                while (1):
+                    input.seek(0)
+
+                    recv = input.read()
+                    if (len(recv) >= 10):
+                        break
+                
+                # Process ACK
+                if recv[0] == "0" and recv[1:10].lower() == "startpump":
                     break   # Got a successful ACK
         
         # send done signal to Arduino
@@ -293,7 +332,9 @@ if __name__ == "__main__":
             ser.write((str(tide_level) + "\n").encode())    # Send tide data over to ASRS
         elif write_to == "S": # Requesting sample to begin
             communicate(ser)
-        elif write_to == "F": # Requesting pump to start, but don't sample
-            flush(ser)
+        elif write_to == "F": # Requesting pump to stop
+            stopPump(ser)
+        elif write_to == "P":
+            startPump(ser) # Start the pump but don't sample (flushing stage)
         elif write_to == "C": # Requesting current time in Unix Epoch format (C for "clock" (b/c T was taken...))
             sendEpochTime(ser)

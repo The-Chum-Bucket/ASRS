@@ -360,16 +360,19 @@ void dryLoop() {
   // turn off Aqusens pump before transitioning to dry state
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
+  char sec_time[3]; // "00"
+  char min_time[3]; // "00"
+  uint32_t millis_remaining;
+  int seconds_remaining, minutes_remaining;
 
-  sendToPython("F");
-  
-  // COMMENTED OUT FOR TESTING PURPOSES
-  // sendToPython("F");
+  resetLCD();
+  liftupTube();
+  uint32_t end_time = curr_time + (60 * dry_time.Minute * 1000) + (dry_time.Second * 1000);
 
-  while (state == DRY) {
+  while (state == DRY && curr_time < millis()) {
     checkEstop();
 
-    if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time) { //If timeout ocurred...
+    if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > millis()) { //If timeout ocurred...
       if (debug_ignore_timeouts)
         state = STANDBY;
       else 
@@ -378,50 +381,11 @@ void dryLoop() {
       continue;
     }
 
-    if (Serial.available()) {
-      String data = Serial.readStringUntil('\n'); // Read full line
-
-    // if (Serial.available()) {
-    //   String data = Serial.readStringUntil('\n'); // Read full line
-    //   // only transition to drying after Aqusens pump turned off
-    //   if (data == "D") {  
-    //     break;
-    //   }
-      // Flush any remaining characters
-      while (Serial.available()) {
-        Serial.read();  // Discard extra data
-      }
-    }
-
-    curr_time = millis();
-    //   // Flush any remaining characters
-    //   while (Serial.available()) {
-    //     Serial.read();  // Discard extra data
-    //   }
-
-    state = STANDBY;
-    //}
-  }
-  // setMotorSpeed(0);
-
-  char sec_time[3]; // "00"
-  char min_time[3]; // "00"
-
-  resetLCD();
-
-  curr_time = millis();
-  uint32_t end_time = curr_time + (60 * dry_time.Minute * 1000) + (dry_time.Second * 1000);
-
-  int seconds_remaining, minutes_remaining;
-
-  while (state == DRY && millis() < end_time) {
-    checkEstop();
-
     // Calculate remaining time, accounting for millis() overflow
-    uint32_t millis_remaining;
     if (end_time > millis()) {
       millis_remaining = end_time - millis();
-    } else {
+    } 
+    else {
       // Handle overflow case
       millis_remaining = (UINT32_MAX - millis()) + end_time;
     }
@@ -432,30 +396,30 @@ void dryLoop() {
     // Format seconds with leading zero if necessary
     if (seconds_remaining % 60 > 9) {
       snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-    } else {
+    } 
+    else {
       snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
     }
 
     // Format minutes with leading zero if necessary
     if (minutes_remaining > 9) {
       snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-    } else {
+    } 
+    else {
       snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
     }
 
     // Update LCD with remaining time
-    dryLCD(min_time, sec_time, seconds_remaining % 4);
-
-    // pull up on the tube 
-    tube_home_funcs(true);    
+    dryLCD(min_time, sec_time, seconds_remaining % 4); 
   }
 
-  // bring tube 
-  tube_home_funcs(false);
+  // bring tube home
+  unliftTube();
 
   state = STANDBY;
-  tube_position_f = 0; // reset for safe keeping
-}
+
+  }
+
 
   /**
  * @brief ALARM
@@ -540,7 +504,7 @@ void dryLoop() {
 
   void motorControlLoop() {
     motorControlLCD();
-    updateMotorCurrPositionDisplay(MOTOR_OFF);
+    updateMotorCurrPositionDisplay(OFF);
     char key;
     uint8_t key_pressed;
     uint8_t last_key_pressed;
@@ -565,11 +529,11 @@ void dryLoop() {
       else if (key_pressed == 'D') {
         while (pressAndHold('D') == 'D') {
           setMotorSpeed(-10);
-          updateMotorCurrPositionDisplay(LOWERING);
+          updateMotorCurrPositionDisplay(CCW);
           // Serial.println("D");
         }
         turnMotorOff();
-        updateMotorCurrPositionDisplay(MOTOR_OFF);
+        updateMotorCurrPositionDisplay(OFF);
       }
 
       else if (key_pressed == 'U') {
@@ -579,12 +543,12 @@ void dryLoop() {
           else
             setMotorSpeed(10);
           //Move motor up 1cm
-          updateMotorCurrPositionDisplay(RAISING);
+          updateMotorCurrPositionDisplay(CW);
           // while(!retrieveTube(1)); // Raises tube 
           // Serial.println("U");
         }
         turnMotorOff();
-        updateMotorCurrPositionDisplay(MOTOR_OFF);
+        updateMotorCurrPositionDisplay(OFF);
       }
     }
   }

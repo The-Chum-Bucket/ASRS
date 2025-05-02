@@ -298,7 +298,7 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag) {
   lcd.print("TEMP: ");
   
   if (temp_flag) {
-    lcd.print(readRTD(TEMP_SENSOR_ONE), 1);
+    lcd.print(readRTD(TEMP_SENSOR_ONE));
     lcd.print("C");
   }
 
@@ -720,16 +720,16 @@ void motorControlLCD() {
  * 
  * @param status current status of the motor (RAISING/LOWERING/OFF)
  */
-void updateMotorCurrPositionDisplay(MotorStatus status) {
+void updateMotorCurrPositionDisplay(MotorDir status) {
   //int32_t currPos = 40; //Temporary, assuming will have a global variable that tracks position
-  if (status != RAISING)
+  if (status != CW)
     lcd.setCursor(12, 3);
   else 
     lcd.setCursor(13, 3);
 
-  if (status == RAISING)
+  if (status == CW)
     lcd.print("RAISING");
-  else if (status == LOWERING)
+  else if (status == CCW)
     lcd.print("LOWERING");
   else 
     lcd.print("         ");

@@ -46,12 +46,12 @@ void homeTube() {
 }
 
 /**
- * @brief retrieves tube for given distance
+ * @brief drops tube to given distance
  * 
  * 
- * @param distance_cm distance to retrieve in cm
- * @return true if the tube has finished retrieving to given distance
- * @return false if the tube has not finished retrieving
+ * @param distance_cm distance to drop in cm
+ * @return true if the tube has finished dropping to given distance
+ * @return false if the tube has not finished dropping
  */
 
 bool dropTube(unsigned int distance_cm) {
