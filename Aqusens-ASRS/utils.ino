@@ -39,7 +39,7 @@ void estopInit() {
 void rtcInit() {
   rtc.begin();
 
-  const TimesConfig_t& times_cfg = getGlobalCfg().times_cfg;
+  //const TimesConfig_t& times_cfg = getGlobalCfg().times_cfg;
 
   uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
 
@@ -51,9 +51,9 @@ void rtcInit() {
   sample_interval.Year = 0;
   sample_interval.Month = 0;
   sample_interval.Day = 0;
-  sample_interval.Hour = times_cfg.sample_interval.hour;
-  sample_interval.Minute = times_cfg.sample_interval.min;  
-  sample_interval.Second = times_cfg.sample_interval.sec;
+  sample_interval.Hour = DEFAULT_SAMPLE_INTERVAL_HOUR;
+  sample_interval.Minute = DEFAULT_SAMPLE_INTERVAL_MIN;
+  sample_interval.Second = DEFAULT_SAMPLE_INTERVAL_SEC;
 
   next_sample_time.Year = rtc.getYear() + sample_interval.Year;
   next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
@@ -61,11 +61,11 @@ void rtcInit() {
   next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
   next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
 
-  soak_time.Minute = times_cfg.soak_time.min;
-  soak_time.Second = times_cfg.soak_time.sec;
+  soak_time.Minute = DEFAULT_SOAK_TIME_MIN;
+  soak_time.Second = DEFAULT_SOAK_TIME_SEC;
 
-  dry_time.Minute = times_cfg.dry_time.min;
-  dry_time.Second = times_cfg.dry_time.sec;
+  dry_time.Minute = DEFAULT_DRY_TIME_MIN;
+  dry_time.Second = DEFAULT_DRY_TIME_SEC;
 
   tube_flush_time.Minute = TOT_FLUSH_TIME_S / 60;
   tube_flush_time.Second = TOT_FLUSH_TIME_S % 60;

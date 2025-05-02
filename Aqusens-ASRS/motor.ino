@@ -1,11 +1,11 @@
 // IDK why this needs to be here but it does 
 void setMotorDir(MotorDir dir); 
 
-void setMotorCfg() {
-    const MotorConfig_t& motor_cfg = getGlobalCfg().motor_cfg;
-    MOTORSPEED_FACTOR = (motor_cfg.pulse_per_rev * motor_cfg.gear_ratio) / (2.0f * PI * motor_cfg.reel_radius_cm);
-    return;
-}
+// void setMotorCfg() {
+//     const MotorConfig_t& motor_cfg = getGlobalCfg().motor_cfg;
+//     MOTORSPEED_FACTOR = (motor_cfg.pulse_per_rev * motor_cfg.gear_ratio) / (2.0f * PI * motor_cfg.reel_radius_cm);
+//     return;
+// }
 
 /**
  * @brief Initialize motor pins

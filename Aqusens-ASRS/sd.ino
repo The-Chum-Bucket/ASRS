@@ -1,6 +1,6 @@
-void setSDCfg(SDConfig_t& cfg) {
-    sd_cfg = cfg;
-}
+// void setSDCfg(SDConfig_t& cfg) {
+//     sd_cfg = cfg;
+// }
 
 void initSD() {
     if (!SD.begin(SD_CS)){
@@ -25,7 +25,7 @@ float getTideData(){
     prev_itr_pred = -1;
     prev_itr_hour = -1;
 
-    File file = SD.open(sd_cfg.tide_data_name);
+    File file = SD.open(TIDE_FILE_NAME);
     // TODO: do this check multiple times
     if (!file){
         Serial.println("Failed to Open Tide File");
@@ -209,7 +209,7 @@ float getDropDistance(){
         Serial.read();  // Discard extra data
     }
 
-    return sd_cfg.pier_dist_cm - drop_distance_cm + 60.0f;
+    return PIER_DEFAULT_DIST_CM - drop_distance_cm + 60.0f;
 }
 
 void listFiles(File dir, int numTabs) {
@@ -235,185 +235,185 @@ void listFiles(File dir, int numTabs) {
 }
 
 
-void export_cfg_to_sd() {
-    // for debug purposes
-    // File root = SD.open("/");
-    // listFiles(root, 0);
+// void export_cfg_to_sd() {
+//     // for debug purposes
+//     // File root = SD.open("/");
+//     // listFiles(root, 0);
 
-    File file = SD.open(CONFIG_FILENAME, O_CREAT | O_WRITE | O_TRUNC);
-    if (!file) {
-        Serial.println("[SD] Error opening file for writing!");
-        return;
-    }
+//     File file = SD.open(CONFIG_FILENAME, O_CREAT | O_WRITE | O_TRUNC);
+//     if (!file) {
+//         Serial.println("[SD] Error opening file for writing!");
+//         return;
+//     }
 
-    GlobalConfig_t& cfg = getGlobalCfg();
-    StaticJsonDocument<JSON_SIZE> doc; // TODO: this might be too little
+//     GlobalConfig_t& cfg = getGlobalCfg();
+//     StaticJsonDocument<JSON_SIZE> doc; // TODO: this might be too little
 
-    // time config
-    doc["times"]["sample_interval"]["day"] = cfg.times_cfg.sample_interval.day;
-    doc["times"]["sample_interval"]["hour"] = cfg.times_cfg.sample_interval.hour;
-    doc["times"]["sample_interval"]["min"] = cfg.times_cfg.sample_interval.min;
-    doc["times"]["sample_interval"]["sec"] = cfg.times_cfg.sample_interval.sec;
+//     // time config
+//     doc["times"]["sample_interval"]["day"] = cfg.times_cfg.sample_interval.day;
+//     doc["times"]["sample_interval"]["hour"] = cfg.times_cfg.sample_interval.hour;
+//     doc["times"]["sample_interval"]["min"] = cfg.times_cfg.sample_interval.min;
+//     doc["times"]["sample_interval"]["sec"] = cfg.times_cfg.sample_interval.sec;
 
-    doc["times"]["soak_time"]["min"] = cfg.times_cfg.soak_time.min;
-    doc["times"]["soak_time"]["sec"] = cfg.times_cfg.soak_time.sec;
+//     doc["times"]["soak_time"]["min"] = cfg.times_cfg.soak_time.min;
+//     doc["times"]["soak_time"]["sec"] = cfg.times_cfg.soak_time.sec;
 
-    doc["times"]["dry_time"]["min"] = cfg.times_cfg.dry_time.min;
-    doc["times"]["dry_time"]["sec"] = cfg.times_cfg.dry_time.sec;
+//     doc["times"]["dry_time"]["min"] = cfg.times_cfg.dry_time.min;
+//     doc["times"]["dry_time"]["sec"] = cfg.times_cfg.dry_time.sec;
 
-    // motor config
-    doc["motor"]["reel_radius_cm"] = cfg.motor_cfg.reel_radius_cm;
-    doc["motor"]["gear_ratio"] = cfg.motor_cfg.gear_ratio;
-    doc["motor"]["pulse_per_rev"] = cfg.motor_cfg.pulse_per_rev;
+//     // motor config
+//     doc["motor"]["reel_radius_cm"] = cfg.motor_cfg.reel_radius_cm;
+//     doc["motor"]["gear_ratio"] = cfg.motor_cfg.gear_ratio;
+//     doc["motor"]["pulse_per_rev"] = cfg.motor_cfg.pulse_per_rev;
 
-    // position config
-    doc["position"]["narrow_tube_cm"] = cfg.position_cfg.narrow_tube_cm;
-    doc["position"]["tube_cm"] = cfg.position_cfg.tube_cm;
-    doc["position"]["water_level_cm"] = cfg.position_cfg.water_level_cm;
-    doc["position"]["min_ramp_dist_cm"] = cfg.position_cfg.min_ramp_dist_cm;
-    doc["position"]["drop_speed_cm_sec"] = cfg.position_cfg.drop_speed_cm_sec;
-    doc["position"]["raise_speed_cm_sec"] = cfg.position_cfg.raise_speed_cm_sec;
+//     // position config
+//     doc["position"]["narrow_tube_cm"] = cfg.position_cfg.narrow_tube_cm;
+//     doc["position"]["tube_cm"] = cfg.position_cfg.tube_cm;
+//     doc["position"]["water_level_cm"] = cfg.position_cfg.water_level_cm;
+//     doc["position"]["min_ramp_dist_cm"] = cfg.position_cfg.min_ramp_dist_cm;
+//     doc["position"]["drop_speed_cm_sec"] = cfg.position_cfg.drop_speed_cm_sec;
+//     doc["position"]["raise_speed_cm_sec"] = cfg.position_cfg.raise_speed_cm_sec;
 
-    JsonArray drop_speeds = doc["position"].createNestedArray("drop_speeds");
-    for (float speed : cfg.position_cfg.drop_speeds) drop_speeds.add(speed);
+//     JsonArray drop_speeds = doc["position"].createNestedArray("drop_speeds");
+//     for (float speed : cfg.position_cfg.drop_speeds) drop_speeds.add(speed);
 
-    JsonArray raise_speeds = doc["position"].createNestedArray("raise_speeds");
-    for (float speed : cfg.position_cfg.raise_speeds) raise_speeds.add(speed);
+//     JsonArray raise_speeds = doc["position"].createNestedArray("raise_speeds");
+//     for (float speed : cfg.position_cfg.raise_speeds) raise_speeds.add(speed);
 
-    // SD config
-    doc["sd"]["tide_data_name"] = cfg.sd_cfg.tide_data_name;
-    doc["sd"]["pier_dist_cm"] = cfg.sd_cfg.pier_dist_cm;
+//     // SD config
+//     doc["sd"]["tide_data_name"] = cfg.sd_cfg.tide_data_name;
+//     doc["sd"]["pier_dist_cm"] = cfg.sd_cfg.pier_dist_cm;
 
-    // write to serial for fun
-    // serializeJsonPretty(doc, Serial);
+//     // write to serial for fun
+//     // serializeJsonPretty(doc, Serial);
 
-    // Write to file
-    if (serializeJsonPretty(doc, file) == 0) {
-        Serial.println("[SD] Failed to write JSON to file");
-    }
+//     // Write to file
+//     if (serializeJsonPretty(doc, file) == 0) {
+//         Serial.println("[SD] Failed to write JSON to file");
+//     }
 
-    Serial.println("[SD] Successfully saved config to SD");
+//     Serial.println("[SD] Successfully saved config to SD");
 
-    file.close();
-}
+//     file.close();
+// }
 
-bool load_cfg_from_sd(const char* filename) {
-    GlobalConfig_t& cfg = getGlobalCfg();
+// bool load_cfg_from_sd(const char* filename) {
+//     GlobalConfig_t& cfg = getGlobalCfg();
 
-    File file = SD.open(filename, FILE_READ);
-    if (!file) {
-        Serial.print("Error: Unable to open file ");
-        Serial.println(filename);
-        return false;
-    }
+//     File file = SD.open(filename, FILE_READ);
+//     if (!file) {
+//         Serial.print("Error: Unable to open file ");
+//         Serial.println(filename);
+//         return false;
+//     }
 
-    StaticJsonDocument<JSON_SIZE> doc;
-    DeserializationError error = deserializeJson(doc, file);
+//     StaticJsonDocument<JSON_SIZE> doc;
+//     DeserializationError error = deserializeJson(doc, file);
 
-    if (error) {
-        Serial.print("Error: Failed to parse JSON - ");
-        Serial.println(error.f_str());
-        file.close();
-        return false;
-    }
+//     if (error) {
+//         Serial.print("Error: Failed to parse JSON - ");
+//         Serial.println(error.f_str());
+//         file.close();
+//         return false;
+//     }
 
-    file.close(); 
+//     file.close(); 
 
-    if (doc.containsKey("motor")) {
-        if (doc["motor"].containsKey("reel_radius_cm")) {
-            cfg.motor_cfg.reel_radius_cm = doc["motor"]["reel_radius_cm"].as<float>();
-        }
-        if (doc["motor"].containsKey("gear_ratio")) {
-            cfg.motor_cfg.gear_ratio = doc["motor"]["gear_ratio"].as<float>();
-        }
-        if (doc["motor"].containsKey("pulse_per_rev")) {
-            cfg.motor_cfg.pulse_per_rev = doc["motor"]["pulse_per_rev"].as<unsigned int>();
-        }
-    } else {
-        Serial.println("Warning: Missing 'motor' key in JSON.");
-    }
+//     if (doc.containsKey("motor")) {
+//         if (doc["motor"].containsKey("reel_radius_cm")) {
+//             cfg.motor_cfg.reel_radius_cm = doc["motor"]["reel_radius_cm"].as<float>();
+//         }
+//         if (doc["motor"].containsKey("gear_ratio")) {
+//             cfg.motor_cfg.gear_ratio = doc["motor"]["gear_ratio"].as<float>();
+//         }
+//         if (doc["motor"].containsKey("pulse_per_rev")) {
+//             cfg.motor_cfg.pulse_per_rev = doc["motor"]["pulse_per_rev"].as<unsigned int>();
+//         }
+//     } else {
+//         Serial.println("Warning: Missing 'motor' key in JSON.");
+//     }
 
-    if (doc.containsKey("position")) {
-        JsonObject position = doc["position"];
+//     if (doc.containsKey("position")) {
+//         JsonObject position = doc["position"];
 
-        if (position.containsKey("narrow_tube_cm")) {
-            cfg.position_cfg.narrow_tube_cm = position["narrow_tube_cm"].as<float>();
-        }
-        if (position.containsKey("tube_cm")) {
-            cfg.position_cfg.tube_cm = position["tube_cm"].as<float>();
-        }
-        if (position.containsKey("water_level_cm")) {
-            cfg.position_cfg.water_level_cm = position["water_level_cm"].as<float>();
-        }
-        if (position.containsKey("min_ramp_dist_cm")) {
-            cfg.position_cfg.min_ramp_dist_cm = position["min_ramp_dist_cm"].as<float>();
-        }
-        if (position.containsKey("drop_speed_cm_sec")) {
-            cfg.position_cfg.drop_speed_cm_sec = position["drop_speed_cm_sec"].as<float>();
-        }
-        if (position.containsKey("raise_speed_cm_sec")) {
-            cfg.position_cfg.raise_speed_cm_sec = position["raise_speed_cm_sec"].as<float>();
-        }
+//         if (position.containsKey("narrow_tube_cm")) {
+//             cfg.position_cfg.narrow_tube_cm = position["narrow_tube_cm"].as<float>();
+//         }
+//         if (position.containsKey("tube_cm")) {
+//             cfg.position_cfg.tube_cm = position["tube_cm"].as<float>();
+//         }
+//         if (position.containsKey("water_level_cm")) {
+//             cfg.position_cfg.water_level_cm = position["water_level_cm"].as<float>();
+//         }
+//         if (position.containsKey("min_ramp_dist_cm")) {
+//             cfg.position_cfg.min_ramp_dist_cm = position["min_ramp_dist_cm"].as<float>();
+//         }
+//         if (position.containsKey("drop_speed_cm_sec")) {
+//             cfg.position_cfg.drop_speed_cm_sec = position["drop_speed_cm_sec"].as<float>();
+//         }
+//         if (position.containsKey("raise_speed_cm_sec")) {
+//             cfg.position_cfg.raise_speed_cm_sec = position["raise_speed_cm_sec"].as<float>();
+//         }
 
-        if (position.containsKey("drop_speeds")) {
-            JsonArray drop_speeds = position["drop_speeds"];
-            for (size_t i = 0; i < min(drop_speeds.size(), 4U); i++) {
-                cfg.position_cfg.drop_speeds[i] = drop_speeds[i].as<float>();
-            }
-        }
+//         if (position.containsKey("drop_speeds")) {
+//             JsonArray drop_speeds = position["drop_speeds"];
+//             for (size_t i = 0; i < min(drop_speeds.size(), 4U); i++) {
+//                 cfg.position_cfg.drop_speeds[i] = drop_speeds[i].as<float>();
+//             }
+//         }
 
-        if (position.containsKey("raise_speeds")) {
-            JsonArray raise_speeds = position["raise_speeds"];
-            for (size_t i = 0; i < min(raise_speeds.size(), 4U); i++) {
-                cfg.position_cfg.raise_speeds[i] = raise_speeds[i].as<float>();
-            }
-        }
-    } else {
-        Serial.println("Warning: Missing 'position' key in JSON.");
-    }
+//         if (position.containsKey("raise_speeds")) {
+//             JsonArray raise_speeds = position["raise_speeds"];
+//             for (size_t i = 0; i < min(raise_speeds.size(), 4U); i++) {
+//                 cfg.position_cfg.raise_speeds[i] = raise_speeds[i].as<float>();
+//             }
+//         }
+//     } else {
+//         Serial.println("Warning: Missing 'position' key in JSON.");
+//     }
 
-    if (doc.containsKey("times")) {
-        JsonObject times = doc["times"];
+//     if (doc.containsKey("times")) {
+//         JsonObject times = doc["times"];
 
-        if (times.containsKey("sample_interval")) {
-            JsonObject sample_interval = times["sample_interval"];
-            if (sample_interval.containsKey("day")) {
-                cfg.times_cfg.sample_interval.day = sample_interval["day"].as<uint8_t>();
-            }
-            if (sample_interval.containsKey("hour")) {
-                cfg.times_cfg.sample_interval.hour = sample_interval["hour"].as<uint8_t>();
-            }
-            if (sample_interval.containsKey("min")) {
-                cfg.times_cfg.sample_interval.min = sample_interval["min"].as<uint8_t>();
-            }
-            if (sample_interval.containsKey("sec")) {
-                cfg.times_cfg.sample_interval.sec = sample_interval["sec"].as<uint8_t>();
-            }
-        }
+//         if (times.containsKey("sample_interval")) {
+//             JsonObject sample_interval = times["sample_interval"];
+//             if (sample_interval.containsKey("day")) {
+//                 cfg.times_cfg.sample_interval.day = sample_interval["day"].as<uint8_t>();
+//             }
+//             if (sample_interval.containsKey("hour")) {
+//                 cfg.times_cfg.sample_interval.hour = sample_interval["hour"].as<uint8_t>();
+//             }
+//             if (sample_interval.containsKey("min")) {
+//                 cfg.times_cfg.sample_interval.min = sample_interval["min"].as<uint8_t>();
+//             }
+//             if (sample_interval.containsKey("sec")) {
+//                 cfg.times_cfg.sample_interval.sec = sample_interval["sec"].as<uint8_t>();
+//             }
+//         }
 
-        if (times.containsKey("soak_time")) {
-            JsonObject soak_time = times["soak_time"];
-            if (soak_time.containsKey("min")) {
-                cfg.times_cfg.soak_time.min = soak_time["min"].as<uint8_t>();
-            }
-            if (soak_time.containsKey("sec")) {
-                cfg.times_cfg.soak_time.sec = soak_time["sec"].as<uint8_t>();
-            }
-        }
+//         if (times.containsKey("soak_time")) {
+//             JsonObject soak_time = times["soak_time"];
+//             if (soak_time.containsKey("min")) {
+//                 cfg.times_cfg.soak_time.min = soak_time["min"].as<uint8_t>();
+//             }
+//             if (soak_time.containsKey("sec")) {
+//                 cfg.times_cfg.soak_time.sec = soak_time["sec"].as<uint8_t>();
+//             }
+//         }
 
-        if (times.containsKey("dry_time")) {
-            JsonObject dry_time = times["dry_time"];
-            if (dry_time.containsKey("min")) {
-                cfg.times_cfg.dry_time.min = dry_time["min"].as<uint8_t>();
-            }
-            if (dry_time.containsKey("sec")) {
-                cfg.times_cfg.dry_time.sec = dry_time["sec"].as<uint8_t>();
-            }
-        }
-    } else {
-        Serial.println("Warning: Missing 'times' key in JSON.");
-    }
+//         if (times.containsKey("dry_time")) {
+//             JsonObject dry_time = times["dry_time"];
+//             if (dry_time.containsKey("min")) {
+//                 cfg.times_cfg.dry_time.min = dry_time["min"].as<uint8_t>();
+//             }
+//             if (dry_time.containsKey("sec")) {
+//                 cfg.times_cfg.dry_time.sec = dry_time["sec"].as<uint8_t>();
+//             }
+//         }
+//     } else {
+//         Serial.println("Warning: Missing 'times' key in JSON.");
+//     }
 
-    Serial.println("[SD] Config successfully loaded from SD!");
-    return true;
-}
+//     Serial.println("[SD] Config successfully loaded from SD!");
+//     return true;
+// }

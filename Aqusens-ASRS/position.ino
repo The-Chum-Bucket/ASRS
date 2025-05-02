@@ -22,10 +22,10 @@
 
 //PositionConfig_t pos_cfg = {0};
 
-void setPositionCfg(PositionConfig_t& cfg) {
-    pos_cfg = cfg;
-    return;
-}
+// void setPositionCfg(PositionConfig_t& cfg) {
+//     pos_cfg = cfg;
+//     return;
+// }
 
 /**
  * @brief returns tube to home position at constant speed
@@ -64,11 +64,11 @@ bool dropTube(unsigned int distance_cm) {
 
   resetLCD();
 
-  setMotorSpeed(-pos_cfg.drop_speed_cm_sec/4);
+  setMotorSpeed(-DROP_SPEED_CM_SEC/4);
   delay(100);
-  setMotorSpeed(-pos_cfg.drop_speed_cm_sec/2);
+  setMotorSpeed(-DROP_SPEED_CM_SEC/2);
   delay(100);
-  setMotorSpeed(-pos_cfg.drop_speed_cm_sec);
+  setMotorSpeed(-DROP_SPEED_CM_SEC);
 
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
   releaseLCD(pos);
@@ -111,11 +111,11 @@ bool retrieveTube(float distance_cm) {
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
 
-  setMotorSpeed(pos_cfg.raise_speed_cm_sec/4);
+  setMotorSpeed(RAISE_SPEED_CM_SEC/4);
   delay(100);
-  setMotorSpeed(pos_cfg.raise_speed_cm_sec/2);
+  setMotorSpeed(RAISE_SPEED_CM_SEC/2);
   delay(100);
-  setMotorSpeed(pos_cfg.raise_speed_cm_sec);
+  setMotorSpeed(RAISE_SPEED_CM_SEC);
 
   Serial.print("FINAL STEP COUNT ");
   Serial.println(final_step_count);
@@ -137,11 +137,11 @@ bool retrieveTube(float distance_cm) {
     }
 
     else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST && PULSES_TO_DISTANCE(motor_pulses) > NEARING_TUBE_DIST) {
-      setMotorSpeed(pos_cfg.raise_speed_cm_sec / 4); //Slow motor to 1/4 normal speed
+      setMotorSpeed(RAISE_SPEED_CM_SEC / 4); //Slow motor to 1/4 normal speed
     }
 
     else if (PULSES_TO_DISTANCE(motor_pulses) < NEARING_TUBE_DIST) {
-      setMotorSpeed(pos_cfg.raise_speed_cm_sec / 10); //Slow to 10th of normal speed for alignment
+      setMotorSpeed(RAISE_SPEED_CM_SEC / 10); //Slow to 10th of normal speed for alignment
     }
 
     curr_time = millis();
