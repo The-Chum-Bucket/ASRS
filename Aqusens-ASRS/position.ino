@@ -4,6 +4,13 @@
  * @file position.ino
  */
 
+/**
+ * @brief returns tube to home position at constant speed
+ *        Version for Tube Flush end_time so it can update LCD
+ *        Overloaded for code readability's sake
+ * @param end_time from tubeFlushLoop, the calculated end time from millis()
+ */
+
 
 /**
  * @brief returns tube to home position at constant speed
@@ -11,7 +18,7 @@
  * 
  */
 
-void homeTube() {
+ void homeTube() {
   
   dropTube(2); //Drop 5cm to ensure we are passed the magnet
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
@@ -26,22 +33,14 @@ void homeTube() {
   turnMotorOff();
 }
 
-/**
- * @brief returns tube to home position at constant speed
- *        Version for Tube Flush end_time so it can update LCD
- *        Overloaded for code readability's sake
- * @param end_time from tubeFlushLoop, the calculated end time from millis()
- */
-
- void homeTube(unsigned long end_time) {
+void homeTube(unsigned long end_time, FlushStage curr_stage = NULL_STAGE) {
   
   dropTube(2); //Drop 5cm to ensure we are passed the magnet
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
-    //Update LCD?
     checkEstop();
-    updateFlushTimer(end_time);
+    updateFlushTimer(end_time, curr_stage);
   }
 
   motor_pulses = 0;
@@ -65,12 +64,9 @@ bool dropTube(unsigned int distance_cm) {
   char pos[6];
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
+  int curr_speed = 0;
 
-  setMotorSpeed(-DROP_SPEED_CM_SEC/4);
-  delay(100);
-  setMotorSpeed(-DROP_SPEED_CM_SEC/2);
-  delay(100);
-  setMotorSpeed(-DROP_SPEED_CM_SEC);
+  rampUpMotor(curr_speed, -DROP_SPEED_CM_SEC);
 
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
   if (state == RELEASE) {
@@ -95,9 +91,9 @@ bool dropTube(unsigned int distance_cm) {
     
   }
 
-  turnMotorOff();
+  rampDownMotor(curr_speed, 0);
 
-  if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
+  if (curr_time >= start_time + TUBE_TIMEOUT_ERR_TIME_MS) {
     return false; //Timed out, went 30s without actually stopping
   }
 
@@ -110,20 +106,17 @@ bool retrieveTube(float distance_cm) {
   unsigned long curr_time = millis();
   unsigned long last_lcd_update = millis();
   static char pos[6];
+  bool stop_and_wait_flag = false; //Enables the sampler to stop as it nears the alignment tube, gives time to settle
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
 
-  setMotorSpeed(RAISE_SPEED_CM_SEC/4);
-  delay(100);
-  setMotorSpeed(RAISE_SPEED_CM_SEC/2);
-  delay(100);
-  setMotorSpeed(RAISE_SPEED_CM_SEC);
-
-  // Serial.print("FINAL STEP COUNT ");
-  // Serial.println(final_step_count);
+  int curr_speed = 0;
+  rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC);
+  // int curr_speed = RAISE_SPEED_CM_SEC;
 
   while (motor_pulses >= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+      turnMotorOff();
       return false;
     }
 
@@ -138,12 +131,26 @@ bool retrieveTube(float distance_cm) {
       break;
     }
 
-    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST && PULSES_TO_DISTANCE(motor_pulses) > NEARING_HOME_DIST) {
-      setMotorSpeed(RAISE_SPEED_CM_SEC / 4); //Slow motor to 1/4 normal speed
+    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST 
+            && PULSES_TO_DISTANCE(motor_pulses) > NEARING_HOME_DIST 
+            && !stop_and_wait_flag) {
+      
+      rampDownMotor(curr_speed, 0);
+      // curr_speed = 0;
+      delay(5*1000); //Turn motor off and allow for tube to settle as it nears the opening of the alignment tube
+      stop_and_wait_flag = true; //Indicate that the stop-and-wait-to-settle step is done
+    }
+
+    else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST 
+            && PULSES_TO_DISTANCE(motor_pulses) > NEARING_HOME_DIST 
+            && stop_and_wait_flag) {
+        rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC / 5); //Slow to 1/5 of typical speed as we travel up the tube
+        // curr_speed = RAISE_SPEED_CM_SEC / 5; //Update curr_speed
     }
 
     else if (PULSES_TO_DISTANCE(motor_pulses) < NEARING_HOME_DIST) {
-      setMotorSpeed(RAISE_SPEED_CM_SEC / 10); //Slow to 10th of normal speed for alignment
+      rampDownMotor(curr_speed, RAISE_SPEED_CM_SEC / 10); //Slow to 10th of normal speed for alignment
+      // curr_speed = RAISE_SPEED_CM_SEC / 10;
     }
 
     curr_time = millis();
@@ -151,27 +158,85 @@ bool retrieveTube(float distance_cm) {
 
   turnMotorOff();
 
-  if (curr_time >= start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
-    return false; //Timed out, went 30s without actually stopping
+  if (curr_time >= start_time + TUBE_TIMEOUT_ERR_TIME_MS) {
+    return false; //Timed out, went 45s without actually stopping
   }
 
   return true;
 }
 
+/**
+ * @brief Ramps UP motor speed from curr_speed to target_speed
+ * 
+ * @param curr_speed: the current speed of the motor
+ * @param target_speed: the target final speed of the motor
+ */
+
+ void rampUpMotor(int &curr_speed, int target_speed) {
+    if (abs(target_speed) <= abs(curr_speed)) {
+      //prevent ramping down from this function
+      return;
+    }
+  
+    int step_size = 5;
+    int sign = (target_speed >= 0) ? 1 : -1;
+    int curr_mag = abs(curr_speed);
+    int target_mag = abs(target_speed);
+    int steps = (target_mag - curr_mag) / step_size;
+    if (steps == 0) steps = 1;
+  
+    for (int i = 1; i <= steps; ++i) {
+      int new_mag = curr_mag + step_size * i;
+      if (new_mag > target_mag) new_mag = target_mag;
+      setMotorSpeed(sign * new_mag);
+      delay(50);
+    }
+  
+    setMotorSpeed(target_speed); // Final exact value
+    curr_speed = target_speed
+  }
+  
+
+/**
+ * @brief Ramps DOWN motor speed from curr_speed to target_speed
+ * 
+ * @param curr_speed: the current speed of the motor, updated at end of function
+ * @param target_speed: the target final speed of the motor
+ */
+
+void rampDownMotor(int &curr_speed, int target_speed) {
+  if (abs(target_speed) >= abs(curr_speed)) {
+    //prevent ramping up in this function
+    return;
+  }
+
+  int step_size = 5;
+  int sign = (curr_speed >= 0) ? 1 : -1;
+  int curr_mag = abs(curr_speed);
+  int target_mag = abs(target_speed);
+  int steps = (curr_mag - target_mag) / step_size;
+  if (steps == 0) steps = 1;
+
+  for (int i = 1; i <= steps; ++i) {
+    int new_mag = curr_mag - step_size * i;
+    if (new_mag < target_mag) new_mag = target_mag;
+    setMotorSpeed(sign * new_mag);
+    delay(50);
+  }
+
+  setMotorSpeed(target_speed); // Final exact value
+  curr_speed = target_speed;
+}
 
 /**
  * @brief Lift the tube to the leaking position
  * @note This function is BLOCKING!!!
  * @note Assumes that tube is in the home position. IDK what happens if it isnt
  */
-#define LIFT_SPEED_CM_S     (2.0f)
-#define HOME_SPEED_CM_S     (-2.0f)
 
 void liftupTube() {
-  // if (tube_state) //If tube already lifted
-  //   return;
   
-  setMotorSpeed(LIFT_SPEED_CM_S);
+  setMotorSpeed(DRAIN_LIFT_SPEED_CM_S);
   while(magSensorRead()) {}; //Sit in this loop, waiting for the mag sensor to stop sensing the tube magnet
                              // Once the magnetic sensor stop reading the magnet, the tube is pulled up enough
   turnMotorOff();
@@ -185,25 +250,12 @@ void liftupTube() {
  * @param tube_state current tube state, true if lifted, false if resting
  */
 
-void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing watep
-    //if (!tube_state) return; 
-
-    setMotorSpeed(HOME_SPEED_CM_S);
+void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing water
+    setMotorSpeed(DRAIN_HOME_SPEED_CM_S);
     
     while(!magSensorRead()){}; //Wait for the magnetic sensor to trip again
 
     while(magSensorRead()){}; //Then wait for it to "untrip", want to overshoot the magnet and then rehome
 
     homeTube();
-}
-
-
-void tube_home_funcs(bool lift) {
-    static bool is_tube_up = false;
-
-    if (lift) {
-        liftupTube();
-    } else {
-        unliftTube();
-    }
 }

@@ -31,7 +31,7 @@ void closeAllSolenoids() {
  * 
  * @param end_time the calculated end time of the current flush cycle (passed from main flushing function above)
  */
-void updateFlushTimer(unsigned long end_time) {
+void updateFlushTimer(unsigned long end_time, FlushStage curr_stage) {
   static unsigned long last_update_time = 0;
   static bool temp_flag = false;
   static bool reached_zero = false;
@@ -62,9 +62,9 @@ void updateFlushTimer(unsigned long end_time) {
       }
       
       if (!reached_zero)
-        flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag);
+        flushLCD(min_time, sec_time, seconds_remaining % 4, temp_flag, curr_stage);
       else {
-        flushLCD("00", "00", seconds_remaining % 4, temp_flag); //If exceeded the estimated flush time, then just print zeroes
+        flushLCD("00", "00", seconds_remaining % 4, temp_flag, curr_stage); //If exceeded the estimated flush time, then just print zeroes
       }
   }
 }

@@ -258,7 +258,7 @@ void sampleLCD() {
 }
 
 /**
- * @brief FLUSH_TUBE screen
+ * @brief FLUSH_SYSTEM screen
  * 
  *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
  * |_ F L U S H I N G _ S Y S T E M . . . _|
@@ -271,13 +271,39 @@ void sampleLCD() {
  * @param num_dots Number of dots to display in flashing ...
  * @param temp_flag Flag that determines whether temperature data is displayed
  */
-void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag) {
-  lcd.setCursor(1,0);
+void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, FlushStage curr_stage) {
+  static FlushStage last_stage = NULL_STAGE;
 
-  if (state == FLUSH_TUBE) {
+  if (last_stage == NULL_STAGE || last_stage != curr_stage) {
+    resetLCD();
+    last_stage = curr_stage;
+  }
+
+  if (state == FLUSH_SYSTEM) {
     lcd.setCursor(1,0);
-    lcd.print("FLUSHING SYSTEM");
-    lcd.setCursor(16, 0);
+    switch (curr_stage) {
+      case DUMP_SAMPLE:
+        lcd.print("DUMPING SAMPLE");
+        break;
+      case AIR_BUBBLE:
+        lcd.print("AIR BUBBLE");
+        break;
+      case FRESHWATER_LINE_FLUSH:
+        lcd.print("FLUSHING LINE");
+        break;
+      case FRESHWATER_DEVICE_FLUSH:
+        lcd.print("FLUSHING DEVICE");
+        break;
+      case AIR_FLUSH:
+        lcd.print("AIR FLUSH");
+        break;
+      case HOME_TUBE:
+        lcd.print("REHOMING TUBE");
+        break;
+      default:
+        lcd.print("FLUSH STATE ERR");
+        break;
+    }
   }
 
   switch (num_dots) {

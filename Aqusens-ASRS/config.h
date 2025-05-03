@@ -1,12 +1,17 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Macros for converting total pulses to cm and vice-versa 
+#define PULSES_TO_DISTANCE(num_pulses) ((num_pulses * PI * 2 * REEL_RADIUS_CM)/(PULSES_PER_REV * GEARBOX_RATIO))
+#define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS_CM))
+
+
 /************************* Python Script Comms *************************/
-#define STOP_PUMP         "F"
-#define BEGIN_SAMPLE      "S"
-#define REQUEST_TIME      "C"
-#define REQUEST_TIDE_DATA "T"
-#define START_PUMP        "P"
+#define STOP_PUMP         "F" // Requests Aqusens pump to begin
+#define START_PUMP        "P" // Request Aqusens pump to stop
+#define BEGIN_SAMPLE      "S" // Requests sample to start
+#define REQUEST_TIME      "C" // Requests the current time in unix-epoch form
+#define REQUEST_TIDE_DATA "T" // Requests current tide level from NOAA API
 
 /************************* Default Timings *************************/
 #define DEFAULT_SAMPLE_INTERVAL_HOUR 8
@@ -32,30 +37,34 @@
 #define PULSES_PER_REV        (1600)  // Num of pulses for each STEPPER rotation 
 #define GEARBOX_RATIO         (5.0f)  // Gear ratio of the current gearbox, 5:1 currently
 
-#define PULSES_TO_DISTANCE(num_pulses) ((num_pulses * PI * 2 * REEL_RADIUS_CM)/(PULSES_PER_REV * GEARBOX_RATIO))
-#define DISTANCE_TO_PULSES(distance_cm) ((GEARBOX_RATIO * PULSES_PER_REV * distance_cm) / (PI * 2 * REEL_RADIUS_CM))
-
 #define SYSTEM_CLOCK_FREQ       (48000000)
 #define PRESCALER_VAL           (8)
 
 #define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
 
 /************************* Debounce Timings (utils.ino) *************************/
-#define TIME_BASED_DEBOUNCE_WAIT_TIME_MS 35
-#define PRESS_AND_HOLD_INTERVAL_MS 25
+#define TIME_BASED_DEBOUNCE_WAIT_TIME_MS (35)
+#define PRESS_AND_HOLD_INTERVAL_MS       (25)
 
 /************************* Positioning Parameters (position.ino) *************************/
-#define NARROW_TUBE_CM        (15.0f) 
-#define TUBE_CM               (85.0f) 
-#define WATER_LEVEL_CM        (15.0f) 
-#define MIN_RAMP_DIST_CM      (NARROW_TUBE_CM + TUBE_CM + WATER_LEVEL_CM + 5.0f)
-#define DROP_SPEED_CM_SEC     (75.0f)
-#define RAISE_SPEED_CM_SEC    (50.0f)
-#define SAFE_RISE_SPEED_CM_SEC  (3.0f)
+#define NARROW_TUBE_CM              (15.0f) 
+#define TUBE_CM                     (85.0f) 
+#define WATER_LEVEL_CM              (15.0f) 
+#define DROP_SPEED_CM_SEC           (75.0f)
+#define RAISE_SPEED_CM_SEC          (50.0f)
+#define SAFE_RISE_SPEED_CM_SEC      (3.0f)
 
-#define ALIGNMENT_TUBE_OPENING_DIST 208 + 20 // 208cm long "alignment tube", plus 20cm of buffer
-#define NEARING_HOME_DIST 15 // slow down to a crawl at 15 cm from the magnet
+#define ALIGNMENT_TUBE_OPENING_DIST (208 + 20) // 208cm long "alignment tube", plus 20cm of buffer
+#define NEARING_HOME_DIST           (30) // slow down to a crawl at 15 cm from the magnet
 
+#define MOTOR_STEP_DELAY_MS         (50)
+
+#define TUBE_TIMEOUT_ERR_TIME_MS    (45 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
+
+#define DRAIN_LIFT_SPEED_CM_S       (2.0f)
+#define DRAIN_HOME_SPEED_CM_S       (-2.0f)
+
+#define MANUAL_CONTROL_MOTOR_SPEED (15.0f)
 
 /************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
@@ -134,7 +143,7 @@ enum StateEnum {
   SOAK,
   RECOVER,
   SAMPLE,
-  FLUSH_TUBE,
+  FLUSH_SYSTEM,
   DRY,
   ALARM,
   MANUAL,
@@ -167,12 +176,13 @@ typedef enum AlarmFault {
 
 //Stages for the flushing procedure
 typedef enum FlushStage { 
-  DUMP_SAMPLE               = 0,
-  AIR_BUBBLE                = 1,
-  FRESHWATER_LINE_FLUSH     = 2,
-  FRESHWATER_DEVICE_FLUSH   = 3,
-  AIR_FLUSH                 = 4,
-  HOME_TUBE                 = 5
+  NULL_STAGE                = -1,
+  DUMP_SAMPLE               =  0,
+  AIR_BUBBLE                =  1,
+  FRESHWATER_LINE_FLUSH     =  2,
+  FRESHWATER_DEVICE_FLUSH   =  3,
+  AIR_FLUSH                 =  4,
+  HOME_TUBE                 =  5
 } FlushStage;
 
 typedef enum MotorDir {

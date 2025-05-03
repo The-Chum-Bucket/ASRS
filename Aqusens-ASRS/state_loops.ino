@@ -234,7 +234,7 @@ void sampleLoop() {
        // only transition to flushing after Aqusens sample done
        else {
          if (data == "D") { 
-           state = FLUSH_TUBE;
+           state = FLUSH_SYSTEM;
          }
        }
 
@@ -249,36 +249,10 @@ void sampleLoop() {
 }
 
 /**
- * @brief FLUSH
- * 
- * No selection options
- */
-// void tubeFlushLoop() {
-//   resetLCD();
-//   bool temp_flag = true;
-//   char sec_time[3]; // "00"
-//   char min_time[3]; // "00"
-
-//   uint32_t curr_time = millis();
-//   // uint32_t end_time = curr_time + (60 * tube_flush_time.Minute * 1000) + (tube_flush_time.Second * 1000);
-//   uint32_t end_time = curr_time + (60 * 0 * 1000) + (15 * 1000);
-
-//   int seconds_remaining, minutes_remaining;
-//   uint32_t last_toggle_time = curr_time; // Track the last time temp_flag was toggled
-
-//   while (state == FLUSH_TUBE) {
-//     checkEstop();
-//     flushSystem();
-//     state = DRY;
-//    }
-//}
-
-
-/**
  * @brief runs the system flush procedure, coded as a finite state machine with discrete steps, adjust timings in config.h
  * 
  */
-void tubeFlushLoop() {
+void flushSystemLoop() {
   resetLCD();
   int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
                                     AIR_BUBBLE_TIME_S + 
@@ -300,10 +274,10 @@ void tubeFlushLoop() {
   unsigned long end_time = curr_time + total_flush_time_ms;
   unsigned long curr_stage_end_time = 0;
 
-  updateFlushTimer(end_time);
+  updateFlushTimer(end_time, curr_stage);
   
 
-  while (state == FLUSH_TUBE) {
+  while (state == FLUSH_SYSTEM) {
     switch(curr_stage) {
       case DUMP_SAMPLE:
         if (stagesStarted[DUMP_SAMPLE] == false) {
@@ -322,12 +296,12 @@ void tubeFlushLoop() {
       case AIR_BUBBLE:
       if (stagesStarted[AIR_BUBBLE] == false) {
         //Serial.println("STARTING AIR BUBBLE");
-        pumpControl(START_PUMP, end_time);
+        pumpControl(START_PUMP, end_time, curr_stage);
         stagesStarted[AIR_BUBBLE] = true;
         curr_stage_end_time = curr_time + (1000* AIR_BUBBLE_TIME_S);
       }
       if (curr_time >= curr_stage_end_time) {
-        pumpControl(STOP_PUMP, end_time);
+        pumpControl(STOP_PUMP, end_time, curr_stage);
         curr_stage = FRESHWATER_LINE_FLUSH;
       }
         break;
@@ -363,12 +337,12 @@ void tubeFlushLoop() {
       case AIR_FLUSH:
         if (stagesStarted[AIR_FLUSH] == false) {
           //Serial.println("STARTING AIR FLUSH");
-          pumpControl(START_PUMP, end_time);
+          pumpControl(START_PUMP, end_time, curr_stage);
           stagesStarted[AIR_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * FINAL_AIR_FLUSH_TIME_S);
         }
         if (curr_time >= curr_stage_end_time) {
-          pumpControl(STOP_PUMP, end_time);
+          pumpControl(STOP_PUMP, end_time, curr_stage);
           curr_stage = HOME_TUBE;
         }
         break;
@@ -388,39 +362,8 @@ void tubeFlushLoop() {
 
     curr_time = millis();
     checkEstop();
-    updateFlushTimer(end_time);
+    updateFlushTimer(end_time, curr_stage);
   }
-
-
-  // // DUMP TUBE
-  // liftupTube(); //Dump remainder of sample
-  // //drySampleTube(); //5s delay for draining tube
-  // unliftTube(); //Return tube to home position
-  
-  // // AIR BUBBLE
-  // //pumpControl(START_PUMP);
-  // //delay((90 + 10)*1000) //Delay for 90sec, plus 10s buffer REPLACE WITH NONBLOCKING
-  // pumpControl(STOP_PUMP);
-
-  // // FLUSH LINE (and not Aqusens)
-  // dropTube(30); //Drop down 30cm
-  // updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
-  // homeTube(); //Start to bring the tube home
-  // updateSolenoid(CLOSED, SOLENOID_ONE); // Stop flushing line
-
-  // // FLUSH AQUSENS
-  // flushDevice(10); // TODO: Set to 180s (3:00) (30s for water to reach Aqusens, 2:30 of flushing),
-  //                  // start Aqusens pump
-  
-  // // AIR "BUBBLE" - drain entire system (all Aqusens lines dry)
-  // pumpControl(START_PUMP);
-  // //delay for 45s to drain system
-  // pumpControl(STOP_PUMP);
-
-  
-  // // HOME TUBE
-  // dropTube(3);
-  // homeTube();
 }
 
 
@@ -584,6 +527,7 @@ void dryLoop() {
 
     lcd.clear();
     cursor_y = 1;
+    int curr_speed = 0;
 
     while (state == MOTOR_CONTROL) {
       motorControlLCD();
@@ -601,11 +545,13 @@ void dryLoop() {
 
       else if (key_pressed == 'D') {
         while (pressAndHold('D') == 'D') {
-          setMotorSpeed(-10);
+          // setMotorSpeed(-10);
+          rampUpMotor(curr_speed, -MANUAL_CONTROL_MOTOR_SPEED);
           updateMotorCurrPositionDisplay(CCW);
           // Serial.println("D");
         }
-        turnMotorOff();
+        // turnMotorOff();
+        rampDownMotor(curr_speed, 0);
         updateMotorCurrPositionDisplay(OFF);
       }
 
@@ -614,13 +560,11 @@ void dryLoop() {
           if (magSensorRead()) 
             turnMotorOff();
           else
-            setMotorSpeed(10);
-          //Move motor up 1cm
+            rampUpMotor(curr_speed, MANUAL_CONTROL_MOTOR_SPEED);
           updateMotorCurrPositionDisplay(CW);
-          // while(!retrieveTube(1)); // Raises tube 
-          // Serial.println("U");
         }
-        turnMotorOff();
+
+        rampDownMotor(curr_speed, 0);
         updateMotorCurrPositionDisplay(OFF);
       }
     }
