@@ -193,7 +193,7 @@ bool retrieveTube(float distance_cm) {
     }
   
     setMotorSpeed(target_speed); // Final exact value
-    curr_speed = target_speed
+    curr_speed = target_speed;
   }
   
 
