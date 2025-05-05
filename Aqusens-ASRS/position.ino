@@ -192,7 +192,7 @@ bool retrieveTube(float distance_cm) {
       delay(50);
     }
   
-    setMotorSpeed(target_speed); // Final exact value
+    setMotorSpeed(target_speed); // Final actual requested speed value
     curr_speed = target_speed;
   }
   
@@ -224,8 +224,8 @@ void rampDownMotor(int &curr_speed, int target_speed) {
     delay(50);
   }
 
-  setMotorSpeed(target_speed); // Final exact value
-  curr_speed = target_speed;
+  setMotorSpeed(target_speed); // Final requested speed value
+  curr_speed = target_speed; //Update curr_speed used by caller func
 }
 
 /**
