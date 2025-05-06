@@ -253,8 +253,12 @@ void recoverLCD(String position) {
  * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
  */
 void sampleLCD() {
-  lcd.setCursor(0,1);
-  lcd.print("SAMPLING...");
+  lcd.setCursor(6,0);
+  lcd.print("SAMPLING");
+  lcd.setCursor(1, 2);
+  lcd.print("SAMPLE TEMP: ");
+  lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
+  lcd.print("C");
 }
 
 /**
@@ -280,24 +284,30 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
   }
 
   if (state == FLUSH_SYSTEM) {
-    lcd.setCursor(1,0);
+    // lcd.setCursor(1,0);
     switch (curr_stage) {
       case DUMP_SAMPLE:
+        lcd.setCursor(2,0);
         lcd.print("DUMPING SAMPLE");
         break;
       case AIR_BUBBLE:
+        lcd.setCursor(5,0);
         lcd.print("AIR BUBBLE");
         break;
       case FRESHWATER_LINE_FLUSH:
+        lcd.setCursor(2,0);
         lcd.print("FLUSHING LINE");
         break;
       case FRESHWATER_DEVICE_FLUSH:
+        lcd.setCursor(1,0);
         lcd.print("FLUSHING DEVICE");
         break;
       case AIR_FLUSH:
+        lcd.setCursor(5,0);
         lcd.print("AIR FLUSH");
         break;
       case HOME_TUBE:
+        lcd.setCursor(2,0);
         lcd.print("REHOMING TUBE");
         break;
       default:

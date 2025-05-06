@@ -102,7 +102,7 @@ void releaseLoop() {
 
   // drop_distance_cm = getDropDistance();
 
-  drop_distance_cm = 20; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+  drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
 
   // actually drop the tube
@@ -206,6 +206,7 @@ void sampleLoop() {
 
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
+  unsigned long last_lcd_update = 0;
 
   // TODO: wrap this in a meaningful function name (inline?)
   sendToPython("S");
@@ -214,8 +215,11 @@ void sampleLoop() {
 
   while (state == SAMPLE) 
   {
-    sampleLCD();
-
+    if (last_lcd_update == 0 || curr_time - last_lcd_update > 1000) {
+      sampleLCD();
+      last_lcd_update = curr_time;
+    }
+    
 
     if (curr_time >= start_time + (1000 * SAMPLE_TIME_SEC) + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
     {
@@ -309,9 +313,9 @@ void flushSystemLoop() {
       case FRESHWATER_LINE_FLUSH:
         if (stagesStarted[FRESHWATER_LINE_FLUSH] == false) {
           //Serial.println("STARTING FRESHWATER LINE FLUSH");
-          dropTube(DROP_TUBE_DIST_CM); //Drop down for line flush
+          dropTube(LINE_FLUSH_DROP_DIST_CM); //Drop down for line flush
           updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
-          homeTube(end_time);
+          homeTube(end_time, curr_stage);
           stagesStarted[FRESHWATER_LINE_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * FLUSH_LINE_TIME_S);
         }
@@ -325,6 +329,7 @@ void flushSystemLoop() {
         if (stagesStarted[FRESHWATER_DEVICE_FLUSH] == false) {
           //Serial.println("STARTING FRESHWATER DEVICE FLUSH");
           end_time += flushDevice(); //Update end time if there was any waiting for flushing water to cool down.
+          pumpControl(START_PUMP, end_time, curr_stage);
           stagesStarted[FRESHWATER_DEVICE_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * (FRESHWATER_TO_DEVICE_TIME_S + FRESHWATER_FLUSH_TIME_S));
         }
@@ -337,7 +342,7 @@ void flushSystemLoop() {
       case AIR_FLUSH:
         if (stagesStarted[AIR_FLUSH] == false) {
           //Serial.println("STARTING AIR FLUSH");
-          pumpControl(START_PUMP, end_time, curr_stage);
+          //pumpControl(START_PUMP, end_time, curr_stage);
           stagesStarted[AIR_FLUSH] = true;
           curr_stage_end_time = curr_time + (1000 * FINAL_AIR_FLUSH_TIME_S);
         }
@@ -349,8 +354,8 @@ void flushSystemLoop() {
       case HOME_TUBE:
         if (stagesStarted[HOME_TUBE] == false) {
           //Serial.println("STARTING FINAL HOMING");
-          dropTube(2); //Drop 3 cm, want to overshoot the magnet
-          homeTube(end_time);
+          //dropTube(2); //Drop 3 cm, want to overshoot the magnet
+          homeTube(end_time, curr_stage);
           stagesStarted[HOME_TUBE] = true;
           state = DRY;
         }

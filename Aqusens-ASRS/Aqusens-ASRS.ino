@@ -89,17 +89,15 @@ void setup() {
   Serial.begin(115200);
   while (!P1.init()) {} // Initialize controller
 
-  //init_cfg();
+  lcd.init(); // Initialize the LCD
+  lcd.backlight(); // Turn on the backlight
+  lcd.setCursor(0, 0); // Set cursor to column 0, row 0
 
   rtcInit();
   rtdInit();
   gpioInit();
   estopInit();
   motorInit();
-
-  lcd.init(); // Initialize the LCD
-  lcd.backlight(); // Turn on the backlight
-  lcd.setCursor(0, 0); // Set cursor to column 0, row 0
 
   state = CALIBRATE;
   

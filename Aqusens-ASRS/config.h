@@ -89,7 +89,7 @@
 #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
-#define DROP_TUBE_DIST_CM       (40.0f)
+#define LINE_FLUSH_DROP_DIST_CM (30.0f)
 #define HOME_TUBE_SPD_CM_S      (2.0f)
 
 /************************* SD Storage (sd.ino) *************************/

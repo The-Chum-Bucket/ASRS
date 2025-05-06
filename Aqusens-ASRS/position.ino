@@ -20,7 +20,8 @@
 
  void homeTube() {
   
-  dropTube(2); //Drop 5cm to ensure we are passed the magnet
+  setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
+  delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
@@ -33,9 +34,10 @@
   turnMotorOff();
 }
 
-void homeTube(unsigned long end_time, FlushStage curr_stage = NULL_STAGE) {
+void homeTube(unsigned long end_time, FlushStage curr_stage) {
   
-  dropTube(2); //Drop 5cm to ensure we are passed the magnet
+  setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
+  delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
@@ -106,9 +108,10 @@ bool retrieveTube(float distance_cm) {
   unsigned long curr_time = millis();
   unsigned long last_lcd_update = millis();
   static char pos[6];
-  bool stop_and_wait_flag = false; //Enables the sampler to stop as it nears the alignment tube, gives time to settle
+  //bool stop_and_wait_flag = false; //Enables the sampler to stop as it nears the alignment tube, gives time to settle
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
+  bool stop_and_wait_flag = distance_cm < ALIGNMENT_TUBE_OPENING_DIST;
 
   int curr_speed = 0;
   rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC);
@@ -143,7 +146,7 @@ bool retrieveTube(float distance_cm) {
 
     else if (PULSES_TO_DISTANCE(motor_pulses) < ALIGNMENT_TUBE_OPENING_DIST 
             && PULSES_TO_DISTANCE(motor_pulses) > NEARING_HOME_DIST 
-            && stop_and_wait_flag) {
+            && stop_and_wait_flag) { //CONDITION NEEDS TO REMOVE TRUE TO WORK WITH PIER
         rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC / 5); //Slow to 1/5 of typical speed as we travel up the tube
         // curr_speed = RAISE_SPEED_CM_SEC / 5; //Update curr_speed
     }
@@ -173,28 +176,29 @@ bool retrieveTube(float distance_cm) {
  */
 
  void rampUpMotor(int &curr_speed, int target_speed) {
-    if (abs(target_speed) <= abs(curr_speed)) {
-      //prevent ramping down from this function
-      return;
-    }
-  
-    int step_size = 5;
-    int sign = (target_speed >= 0) ? 1 : -1;
-    int curr_mag = abs(curr_speed);
-    int target_mag = abs(target_speed);
-    int steps = (target_mag - curr_mag) / step_size;
-    if (steps == 0) steps = 1;
-  
-    for (int i = 1; i <= steps; ++i) {
-      int new_mag = curr_mag + step_size * i;
-      if (new_mag > target_mag) new_mag = target_mag;
-      setMotorSpeed(sign * new_mag);
-      delay(50);
-    }
-  
-    setMotorSpeed(target_speed); // Final actual requested speed value
-    curr_speed = target_speed;
+  if (abs(target_speed) <= abs(curr_speed)) {
+    // Prevent ramping down from this function
+    return;
   }
+
+  const int steps = 10; // Hard-coded number of steps
+  int sign = (target_speed >= 0) ? 1 : -1;
+  int curr_mag = abs(curr_speed);
+  int target_mag = abs(target_speed);
+
+  float step_size = (float)(target_mag - curr_mag) / steps;
+
+  for (int i = 1; i <= steps; ++i) {
+    int new_mag = curr_mag + round(step_size * i);
+    if (new_mag > target_mag) new_mag = target_mag;
+    setMotorSpeed(sign * new_mag);
+    delay(25);
+  }
+
+  setMotorSpeed(target_speed);
+  curr_speed = target_speed;
+}
+
   
 
 /**
@@ -204,29 +208,30 @@ bool retrieveTube(float distance_cm) {
  * @param target_speed: the target final speed of the motor
  */
 
-void rampDownMotor(int &curr_speed, int target_speed) {
+ void rampDownMotor(int &curr_speed, int target_speed) {
   if (abs(target_speed) >= abs(curr_speed)) {
-    //prevent ramping up in this function
+    // Prevent ramping up in this function
     return;
   }
 
-  int step_size = 5;
+  const int steps = 10; // Hard-coded number of steps
   int sign = (curr_speed >= 0) ? 1 : -1;
   int curr_mag = abs(curr_speed);
   int target_mag = abs(target_speed);
-  int steps = (curr_mag - target_mag) / step_size;
-  if (steps == 0) steps = 1;
+
+  float step_size = (float)(curr_mag - target_mag) / steps;
 
   for (int i = 1; i <= steps; ++i) {
-    int new_mag = curr_mag - step_size * i;
+    int new_mag = curr_mag - round(step_size * i);
     if (new_mag < target_mag) new_mag = target_mag;
     setMotorSpeed(sign * new_mag);
-    delay(50);
+    delay(25);
   }
 
-  setMotorSpeed(target_speed); // Final requested speed value
-  curr_speed = target_speed; //Update curr_speed used by caller func
+  setMotorSpeed(target_speed);
+  curr_speed = target_speed;
 }
+
 
 /**
  * @brief Lift the tube to the leaking position
