@@ -73,7 +73,7 @@ def detect_serial_port():
 def get_pacific_unix_epoch():
     """
     Get a Unix timestamp that, when directly interpreted by a device with no timezone awareness,
-    will display the current Pacific Time.
+    will display tjhe current Pacific Time.
     
     Returns:
         int: Unix timestamp adjusted to show Pacific Time
