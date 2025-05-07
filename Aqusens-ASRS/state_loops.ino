@@ -21,9 +21,9 @@ void calibrateLoop() {
    
 
   homeTube();
-  liftupTube();
-  delay(5*1000);
-  unliftTube();
+  // liftupTube();
+  // delay(5*1000);
+  // unliftTube();
   state = STANDBY;
 }
 
@@ -205,12 +205,14 @@ void recoverLoop() {
  * No selection options
  */
 void sampleLoop() {
+  pumpControl(START_PUMP, 0, NULL_STAGE);
   resetLCD();
 
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
   unsigned long last_lcd_update = 0;
 
+  
   // TODO: wrap this in a meaningful function name (inline?)
   sendToPython("S");
   delay(500); //Delay for a half second, wait for message to be processed...

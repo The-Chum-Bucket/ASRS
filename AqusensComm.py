@@ -14,7 +14,7 @@ BAUD_RATE = 115200
 READ_FILE = "response_file.txt"
 WRITE_FILE = "command_file.txt"
 TEMP_CSV = "SampleTemps.csv"
-DIRECTORY_PATH = "D:\Data\Raw"
+DIRECTORY_PATH = "D:/Data/Raw"
 NOAA_TIDE_LEVEL_QUERY_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=9412110&product=water_level&datum=MLLW&time_zone=lst&units=metric&format=json"
 
 TIDE_LEVEL_QUERY_TYPE   = "T"
@@ -54,7 +54,7 @@ def detect_serial_port():
 
     system = platform.system()
     if system == "Windows":
-        return "COM4"
+        return "COM3"
     elif system == "Linux":
         for pattern in ["/dev/tty0", "/dev/ttyACM*"]:
             ports = glob.glob(pattern)
