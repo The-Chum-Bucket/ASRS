@@ -252,7 +252,7 @@ void recoverLCD(String position) {
  * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
  * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
  */
-void sampleLCD() {
+void sampleLCD(unsigned long end_time) {
   lcd.setCursor(6,0);
   lcd.print("SAMPLING");
   lcd.setCursor(1, 2);

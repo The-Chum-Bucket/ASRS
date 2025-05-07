@@ -211,6 +211,7 @@ void sampleLoop() {
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
   unsigned long last_lcd_update = 0;
+  unsigned long end_time = start_time + (1000 * SAMPLE_TIME_SEC);
 
   
   // TODO: wrap this in a meaningful function name (inline?)
@@ -221,7 +222,7 @@ void sampleLoop() {
   while (state == SAMPLE) 
   {
     if (last_lcd_update == 0 || curr_time - last_lcd_update > 1000) {
-      sampleLCD();
+      sampleLCD(end_time);
       last_lcd_update = curr_time;
     }
     

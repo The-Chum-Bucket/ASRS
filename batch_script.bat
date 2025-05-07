@@ -22,10 +22,10 @@ python -m pip install --upgrade pip
 
 :: install requests and serial
 echo Installing required Python packages...
-python -m pip install requests pyserial
+python -m pip install requests pyserial pytz
 
 :: change this to the command that is used to run the program on the actual Aqusens computer
 echo Running AqusensComm.py...
-"C:/Users/deeba/AppData/Local/Microsoft/WindowsApps/python3.11.exe" "\\wsl.localhost\Ubuntu\home\deebakhosravi\cpe350\aqusens-capstone\AqusensComm.py"
+"python3" "AqusensComs.py"
 
 endlocal

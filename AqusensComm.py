@@ -9,6 +9,7 @@ import signal
 import sys
 import requests
 import platform
+import pytz
 
 BAUD_RATE = 115200
 READ_FILE = "response_file.txt"
@@ -199,7 +200,11 @@ def startPump(ser):
 
 def sendEpochTime(ser):
     try:
-        epoch_time = int(time.time())
+        pacific_tz = pytz.timezone('US/Pacific')
+        utc_now = datetime.now(pytz.utc)
+        pacific_now = utc_now.astimezone(pacific_tz)
+
+        epoch_time = int(pacific_now.timestamp())
         print(f"Sending epoch time: {epoch_time}")
         ser.write((str(epoch_time) + "\n").encode())
         return epoch_time
