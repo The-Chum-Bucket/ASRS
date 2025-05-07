@@ -25,7 +25,7 @@
 #define DEFAULT_DRY_TIME_SEC         5
 
 // #define SAMPLE_TIME_SEC              60*6 //Sample for 6 minutes
-#define SAMPLE_TIME_SEC 15
+#define SAMPLE_TIME_SEC 3 * 60
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
@@ -66,28 +66,28 @@
 
 #define MANUAL_CONTROL_MOTOR_SPEED (15.0f)
 
-/************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
+/************************* Tube FFlush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
-// #define LIFT_TUBE_TIME_S              (5.0f)
-// #define AIR_BUBBLE_TIME_S             (90.0f)
-// #define SAMPLE_TO_DEVICE_TIME_S       (90.0f)
-// #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
-// #define FRESHWATER_TO_DEVICE_TIME_S   (35.0f)
-// #define FRESHWATER_FLUSH_TIME_S       (150.0f)
-// #define FINAL_AIR_FLUSH_TIME_S        (45.0f)
-// #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
-// #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
-
-////////////////////? TEST VALUES FOR DEBUGGING, REAL VALUES ABOVE
 #define LIFT_TUBE_TIME_S              (5.0f)
-#define AIR_BUBBLE_TIME_S             (10.0f)
-#define SAMPLE_TO_DEVICE_TIME_S       (10.0f)
+#define AIR_BUBBLE_TIME_S             (90.0f)
+#define SAMPLE_TO_DEVICE_TIME_S       (90.0f)
 #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
-#define FRESHWATER_TO_DEVICE_TIME_S   (10.0f)
-#define FRESHWATER_FLUSH_TIME_S       (10.0f)
-#define FINAL_AIR_FLUSH_TIME_S        (10.0f)
+#define FRESHWATER_TO_DEVICE_TIME_S   (35.0f)
+#define FRESHWATER_FLUSH_TIME_S       (150.0f)
+#define FINAL_AIR_FLUSH_TIME_S        (45.0f)
 #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
+
+////////////////////? TEST VALUES FOR DEBUGGING, REAL VALUES ABOVE
+// #define LIFT_TUBE_TIME_S              (5.0f)
+// #define AIR_BUBBLE_TIME_S             (10.0f)
+// #define SAMPLE_TO_DEVICE_TIME_S       (10.0f)
+// #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
+// #define FRESHWATER_TO_DEVICE_TIME_S   (10.0f)
+// #define FRESHWATER_FLUSH_TIME_S       (10.0f)
+// #define FINAL_AIR_FLUSH_TIME_S        (10.0f)
+// #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
+// #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
 #define LINE_FLUSH_DROP_DIST_CM (30.0f)
 #define HOME_TUBE_SPD_CM_S      (2.0f)

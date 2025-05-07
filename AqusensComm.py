@@ -14,7 +14,7 @@ BAUD_RATE = 115200
 READ_FILE = "response_file.txt"
 WRITE_FILE = "command_file.txt"
 TEMP_CSV = "SampleTemps.csv"
-DIRECTORY_PATH = "./"
+DIRECTORY_PATH = "D:\Data\Raw"
 NOAA_TIDE_LEVEL_QUERY_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=9412110&product=water_level&datum=MLLW&time_zone=lst&units=metric&format=json"
 
 TIDE_LEVEL_QUERY_TYPE   = "T"
@@ -144,20 +144,25 @@ def communicate(ser, sample_time_sec):
                 writer.writerow(["Timestamp", "Min Temp(C)", "Max Temp(C)", "Avg Temp(C)"])
 
             temperatures = []
-            num_samples = sample_time_sec // 15
+            num_samples = (sample_time_sec // 15) - 1
+            print(num_samples)
             for _ in range(num_samples):
                 time.sleep(15)
                 ser.write("T\n".encode())
+                print("sending temp request!")
                 now = datetime.now()
                 curr_time = now.strftime("%y-%m-%d_%H:%M:%S")
-
-                while True:
+                tmp = 0
+                while tmp < 10:
+                    print("in true loop!")
                     if ser.in_waiting:
+                        print("got temp data!")
                         temp_data = ser.readline().decode().strip()
                         if temp_data.isdigit():
                             print(f"{curr_time} - Temperature: {temp_data}°C")
                             temperatures.append(int(temp_data))
                             break
+                    tmp += 1
                     time.sleep(0.5)
 
             min_temp = min(temperatures)
@@ -205,6 +210,7 @@ def sendEpochTime(ser):
 if __name__ == "__main__":
     ser = setup()
     while ser is None:
+        time.sleep(0.5)
         print("Unable to set up serial connection. Retrying...")
         ser = setup()
 

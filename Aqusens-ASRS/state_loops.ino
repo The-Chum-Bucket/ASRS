@@ -21,6 +21,9 @@ void calibrateLoop() {
    
 
   homeTube();
+  liftupTube();
+  delay(5*1000);
+  unliftTube();
   state = STANDBY;
 }
 
@@ -223,6 +226,7 @@ void sampleLoop() {
 
     if (curr_time >= start_time + (1000 * SAMPLE_TIME_SEC) + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
     {
+      Serial.println("sample state err!");
       setAlarmFault(TOPSIDE_COMP_COMMS);
       continue;
     }
@@ -238,6 +242,7 @@ void sampleLoop() {
        // only transition to flushing after Aqusens sample done
        else {
          if (data == "D") { 
+           sendToPython("F"); 
            state = FLUSH_SYSTEM;
          }
        }
@@ -328,6 +333,7 @@ void flushSystemLoop() {
       case FRESHWATER_DEVICE_FLUSH:
         if (stagesStarted[FRESHWATER_DEVICE_FLUSH] == false) {
           //Serial.println("STARTING FRESHWATER DEVICE FLUSH");
+          liftupTube();
           end_time += flushDevice(); //Update end time if there was any waiting for flushing water to cool down.
           pumpControl(START_PUMP, end_time, curr_stage);
           stagesStarted[FRESHWATER_DEVICE_FLUSH] = true;
@@ -335,6 +341,7 @@ void flushSystemLoop() {
         }
         if (curr_time >= curr_stage_end_time) {
           closeAllSolenoids();
+          unliftTube();
           curr_stage = AIR_FLUSH;
         }
         break;
