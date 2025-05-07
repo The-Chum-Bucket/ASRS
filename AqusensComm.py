@@ -9,6 +9,7 @@ import signal
 import sys
 import requests
 import platform
+import calendar
 import pytz
 
 
@@ -69,6 +70,28 @@ def detect_serial_port():
                 return ports[0]
     raise RuntimeError("No valid serial port found for your OS.")
 
+
+def get_pacific_unix_epoch():
+    """
+    Get the current Unix epoch time adjusted to Pacific Time.
+    
+    Returns:
+        int: Unix epoch time (seconds since Jan 1, 1970) in Pacific Time
+    """
+    # Get current UTC timestamp (Unix epoch time)
+    utc_epoch = int(time.time())
+    
+    # Convert the epoch time to a datetime object in UTC
+    utc_datetime = datetime.fromtimestamp(utc_epoch, pytz.UTC)
+    
+    # Convert to Pacific Time (automatically handles DST)
+    pacific_tz = pytz.timezone('America/Los_Angeles')
+    pacific_datetime = utc_datetime.astimezone(pacific_tz)
+    
+    # Convert back to Unix epoch time
+    pacific_epoch = int(pacific_datetime.timestamp())
+    
+    return pacific_epoch
 
 
 def sigint_handler(signum, frame):
@@ -201,21 +224,7 @@ def startPump(ser):
 
 def sendEpochTime(ser):
     try:
-
-        # Timezone for Pacific Time, including daylight saving time support
-        pacific_tz = pytz.timezone("US/Pacific")
-
-        # Get the current UTC time
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
-
-        # Convert to Pacific time (automatically handles DST)
-        pacific_now = utc_now.astimezone(pacific_tz)
-
-        # Convert Pacific time to epoch timestamp (still in UTC, but reflects the Pacific-local time)
-        epoch_time = int(pacific_now.timestamp())
-
-
-        #epoch_time = int(pacific_now.timestamp())
+        epoch_time = get_pacific_unix_epoch()
         print(f"Sending epoch time: {epoch_time}")
         ser.write((str(epoch_time) + "\n").encode())
         return epoch_time
