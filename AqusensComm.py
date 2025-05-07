@@ -72,25 +72,34 @@ def detect_serial_port():
 
 def get_pacific_unix_epoch():
     """
-    Get a Unix timestamp that, when directly interpreted by a device with no timezone awareness,
-    will display tjhe current Pacific Time.
+    Get a Unix timestamp that, when interpreted as UTC by a device with no timezone awareness,
+    will display the equivalent Pacific Time.
+    
+    For a device that interprets the timestamp as UTC but displays it as local time,
+    we need to ADD the UTC-to-Pacific offset to the current UTC timestamp.
     
     Returns:
-        int: Unix timestamp adjusted to show Pacific Time
+        int: Unix timestamp adjusted to show Pacific Time when interpreted as UTC
     """
-    # Get current time in Pacific timezone
+    # Get current UTC time
+    utc_now = datetime.now(pytz.UTC)
+    
+    # Get current Pacific time
     pacific_tz = pytz.timezone('America/Los_Angeles')
-    now_pacific = datetime.now(pacific_tz)
+    pacific_now = utc_now.astimezone(pacific_tz)
     
-    # Remove timezone info to get a naive datetime object
-    naive_pacific = now_pacific.replace(tzinfo=None)
+    # Calculate the offset in seconds
+    offset_seconds = pacific_now.utcoffset().total_seconds()
     
-    # Calculate seconds since epoch for this naive datetime
-    # This is the timestamp that, when interpreted directly without timezone knowledge,
-    # will show the current Pacific time
-    pacific_epoch = int(naive_pacific.timestamp())
+    # Get standard UTC timestamp
+    utc_timestamp = int(time.time())
     
-    return pacific_epoch
+    # ADD the offset to the UTC timestamp
+    # Since Pacific is behind UTC (negative offset), we're subtracting the absolute value
+    adjusted_timestamp = utc_timestamp + int(offset_seconds)
+    
+    return adjusted_timestamp
+
 
 def sigint_handler(signum, frame):
     if ser and ser.is_open:
