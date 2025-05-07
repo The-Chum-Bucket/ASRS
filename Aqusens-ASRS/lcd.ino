@@ -284,30 +284,29 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
   }
 
   if (state == FLUSH_SYSTEM) {
-    // lcd.setCursor(1,0);
     switch (curr_stage) {
       case DUMP_SAMPLE:
-        lcd.setCursor(2,0);
+        lcd.setCursor(2,1);
         lcd.print("DUMPING SAMPLE");
         break;
       case AIR_BUBBLE:
-        lcd.setCursor(5,0);
+        lcd.setCursor(5,1);
         lcd.print("AIR BUBBLE");
         break;
       case FRESHWATER_LINE_FLUSH:
-        lcd.setCursor(2,0);
+        lcd.setCursor(2,1);
         lcd.print("FLUSHING LINE");
         break;
       case FRESHWATER_DEVICE_FLUSH:
-        lcd.setCursor(1,0);
+        lcd.setCursor(1,1);
         lcd.print("FLUSHING DEVICE");
         break;
       case AIR_FLUSH:
-        lcd.setCursor(5,0);
+        lcd.setCursor(5,1);
         lcd.print("AIR FLUSH");
         break;
       case HOME_TUBE:
-        lcd.setCursor(2,0);
+        lcd.setCursor(2,1);
         lcd.print("REHOMING TUBE");
         break;
       default:
@@ -315,6 +314,9 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
         break;
     }
   }
+
+  lcd.setCursor(1,0);
+  lcd.print("FLUSHING SYSTEM");
 
   switch (num_dots) {
     case 0: 
@@ -330,7 +332,7 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
       lcd.print("   ");
       break;
   }
-  lcd.setCursor(5, 1);
+  lcd.setCursor(5, 2);
   lcd.print("TEMP: ");
   
   if (temp_flag) {
@@ -338,13 +340,11 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
     lcd.print("C");
   }
 
-  lcd.setCursor(4,2);
+  lcd.setCursor(4,3);
   lcd.print(min_time);
   lcd.print(" MIN ");
   lcd.print(sec_time);
   lcd.print(" SEC");
-  lcd.setCursor(6,3);
-  lcd.print("REMAINING");
 }
 
 /**
@@ -764,7 +764,7 @@ void updateMotorCurrPositionDisplay(MotorDir status) {
 
 /**
  * @brief Reset Motor screen in MOTOR_CONTROL
- * 
+ * TODO: remove?
  */
 void resetMotorLCD() {
   lcd.setCursor(0,1);

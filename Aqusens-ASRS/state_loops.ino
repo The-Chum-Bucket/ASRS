@@ -98,11 +98,6 @@ void ensureSampleStartLoop() {
  * Checks for E-Stop press
  */
 void releaseLoop() {
-
-  // resetLCD();
-  // static char pos[6];
-  
-
   // drop_distance_cm = getDropDistance();
 
   drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
@@ -110,9 +105,6 @@ void releaseLoop() {
 
   // actually drop the tube
   while (state == RELEASE){
-    // snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses));
-    // releaseLCD(pos);
-
     if (isMotorAlarming()) setAlarmFault(MOTOR);
 
     if (dropTube(drop_distance_cm)) {
@@ -230,7 +222,10 @@ void sampleLoop() {
     if (curr_time >= start_time + (1000 * SAMPLE_TIME_SEC) + TOPSIDE_COMP_COMMS_TIMEOUT_MS) // Err: timeout due to lack of reply from topside computer
     {
       Serial.println("sample state err!");
-      setAlarmFault(TOPSIDE_COMP_COMMS);
+      if (debug_ignore_timeouts)
+        state = FLUSH_SYSTEM;
+      else 
+        setAlarmFault(TOPSIDE_COMP_COMMS);
       continue;
     }
 

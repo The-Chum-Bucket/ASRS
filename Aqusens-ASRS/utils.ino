@@ -717,6 +717,12 @@ void setAlarmFault(AlarmFault fault_type) {
  */
 
  uint32_t requestEpochTime(void) {
+  resetLCD();
+  lcd.setCursor(0,1);
+  lcd.print("SENDING PYTHON");
+  lcd.setCursor(0,2);
+  lcd.print("TIME REQUEST...");
+  
   sendToPython(REQUEST_TIME);
 
   unsigned long start_time = millis();
