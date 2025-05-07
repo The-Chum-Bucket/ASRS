@@ -471,15 +471,6 @@ void initSetSoakOrDryOrFlushLCD() {
     lcd.setCursor(4, 0);
     lcd.print("SET DRY TIME");
   }
-  else if (state == SET_TUBE_FLUSH_TIME) {
-    lcd.setCursor(0, 0);
-    lcd.print("TUBE FLUSH TIME");
-  }
-
-  else if (state == SET_AQUSENS_FLUSH_TIME) {
-    lcd.setCursor(1, 0);
-    lcd.print("AQUSENS FLUSH TIME");
-  }
 
   lcd.setCursor(7, 2);
   lcd.print("MN SC");

@@ -64,9 +64,6 @@ void rtcInit() {
 
   dry_time.Minute = DEFAULT_DRY_TIME_MIN;
   dry_time.Second = DEFAULT_DRY_TIME_SEC;
-
-  tube_flush_time.Minute = TOT_FLUSH_TIME_S / 60;
-  tube_flush_time.Second = TOT_FLUSH_TIME_S % 60;
   
   updateAlarm();
 }
