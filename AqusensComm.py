@@ -72,30 +72,23 @@ def detect_serial_port():
 
 def get_pacific_unix_epoch():
     """
-    Get a modified Unix epoch time that will display the current Pacific Time
-    when interpreted directly without timezone conversion.
-    
-    This function returns the Unix timestamp that is offset from UTC by the
-    Pacific Time zone difference (including DST adjustments).
+    Get a Unix timestamp that, when directly interpreted by a device with no timezone awareness,
+    will display the current Pacific Time.
     
     Returns:
-        int: Modified Unix epoch that will show as Pacific Time when
-             converted directly to a datetime without timezone handling
+        int: Unix timestamp adjusted to show Pacific Time
     """
-    # Get current UTC time
-    utc_now = datetime.now(pytz.UTC)
-    
-    # Get the Pacific timezone offset in seconds (including DST)
+    # Get current time in Pacific timezone
     pacific_tz = pytz.timezone('America/Los_Angeles')
-    pacific_now = utc_now.astimezone(pacific_tz)
-    offset_seconds = pacific_now.utcoffset().total_seconds()
+    now_pacific = datetime.now(pacific_tz)
     
-    # Get the standard Unix epoch time (UTC-based)
-    utc_epoch = int(time.time())
+    # Remove timezone info to get a naive datetime object
+    naive_pacific = now_pacific.replace(tzinfo=None)
     
-    # Subtract the offset to get a timestamp that will display as Pacific Time
-    # when interpreted directly
-    pacific_epoch = utc_epoch - int(offset_seconds)
+    # Calculate seconds since epoch for this naive datetime
+    # This is the timestamp that, when interpreted directly without timezone knowledge,
+    # will show the current Pacific time
+    pacific_epoch = int(naive_pacific.timestamp())
     
     return pacific_epoch
 
