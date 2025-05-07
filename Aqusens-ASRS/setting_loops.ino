@@ -28,8 +28,6 @@ void settingsLoop() {
       if (settings_page == 1) { // exits to STANDBY mode on first page left select
         resetLCD();
         state = STANDBY;
-        // export_cfg_to_sd();
-        // // TODO: save config before leaving
         cursor_y = 2;
       }
       else { // else, returns to previous settings page
@@ -114,8 +112,6 @@ void settingsLoop() {
     }
 
     if (rtc.getMinutes() == ((last_key_press + 5) % 60)) {
-      // // TODO: save cfg before leaving
-      // export_cfg_to_sd();
       state = STANDBY;
     }
   }
@@ -291,8 +287,6 @@ void setSoakTimeLoop() {
   updateSetSoakOrDryOrFlushLCD(cursor_pos, new_soak_time);
   lcd.blink();
 
-  //TimeUnit_t& soak_times_cfg = getGlobalCfg().times_cfg.soak_time;
-
   while (state == SET_SOAK_TIME) {
     key = getKeyDebounce();
     
@@ -301,9 +295,6 @@ void setSoakTimeLoop() {
         //breakTime(makeTime(new_interval), new_interval);
         soak_time.Second = new_soak_time.Second;
         soak_time.Minute = new_soak_time.Minute;
-        
-        // soak_times_cfg.min = new_soak_time.Minute;
-        // soak_times_cfg.sec = new_soak_time.Second;
 
         lcd.noBlink();
         state = SETTINGS;
@@ -344,9 +335,6 @@ void setDryTimeLoop() {
   updateSetSoakOrDryOrFlushLCD(cursor_pos, new_dry_time);
   lcd.blink();
 
-  //TimeUnit_t& dry_times_cfg = getGlobalCfg().times_cfg.dry_time;
-
-
   while (state == SET_DRY_TIME) {
     key = getKeyDebounce();
     
@@ -356,9 +344,6 @@ void setDryTimeLoop() {
         //breakTime(makeTime(new_interval), new_interval);
         dry_time.Second = new_dry_time.Second;
         dry_time.Minute = new_dry_time.Minute;
-
-        //dry_times_cfg.min = new_dry_time.Minute;
-        //dry_times_cfg.sec = new_dry_time.Second;
 
 
         lcd.noBlink();

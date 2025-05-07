@@ -39,8 +39,6 @@ void estopInit() {
 void rtcInit() {
   rtc.begin();
 
-  //const TimesConfig_t& times_cfg = getGlobalCfg().times_cfg;
-
   uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
 
   if (epoch == 0) { //err, likely timeout in communication with topside computer
