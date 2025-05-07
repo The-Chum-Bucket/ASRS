@@ -726,6 +726,7 @@ void setAlarmFault(AlarmFault fault_type) {
 
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
+  unsigned long last_request_time = start_time;
 
   while (curr_time - start_time < TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     if (Serial.available()) {
@@ -737,6 +738,12 @@ void setAlarmFault(AlarmFault fault_type) {
         return epoch;
       }
     }
+
+    if (curr_time - last_request_time > 1000) { // Reask for time every 1 second
+      sendToPython(REQUEST_TIME);
+      last_request_time = curr_time;
+    }
+
     curr_time = millis(); 
   }
 

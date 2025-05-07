@@ -202,9 +202,11 @@ def startPump(ser):
 def sendEpochTime(ser):
     try:
         pacific_tz = pytz.timezone('US/Pacific')
-        pacific_now = datetime.now(pacific_tz)
-        pacific_epoch = pacific_tz.localize(datetime(1970, 1, 1, 0, 0, 0))
-        epoch_time = int((pacific_now - pacific_epoch).total_seconds())
+
+
+        naive_now = datetime.now()  # naive local time (no tz info)
+        pacific_now = pacific_tz.localize(naive_now, is_dst=None)  # let pytz determine DST
+        epoch_time = int(pacific_now.timestamp())
 
         #epoch_time = int(pacific_now.timestamp())
         print(f"Sending epoch time: {epoch_time}")
