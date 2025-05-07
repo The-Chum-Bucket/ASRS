@@ -9,7 +9,7 @@ import signal
 import sys
 import requests
 import platform
-import pzyt
+import pytz
 
 
 BAUD_RATE = 115200
@@ -201,12 +201,19 @@ def startPump(ser):
 
 def sendEpochTime(ser):
     try:
-        pacific_tz = pytz.timezone('US/Pacific')
 
+        # Timezone for Pacific Time, including daylight saving time support
+        pacific_tz = pytz.timezone("US/Pacific")
 
-        naive_now = datetime.now()  # naive local time (no tz info)
-        pacific_now = pacific_tz.localize(naive_now, is_dst=None)  # let pytz determine DST
+        # Get the current UTC time
+        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+        # Convert to Pacific time (automatically handles DST)
+        pacific_now = utc_now.astimezone(pacific_tz)
+
+        # Convert Pacific time to epoch timestamp (still in UTC, but reflects the Pacific-local time)
         epoch_time = int(pacific_now.timestamp())
+
 
         #epoch_time = int(pacific_now.timestamp())
         print(f"Sending epoch time: {epoch_time}")
