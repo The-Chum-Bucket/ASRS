@@ -9,6 +9,7 @@ import signal
 import sys
 import requests
 import platform
+import pzyt
 
 
 BAUD_RATE = 115200
