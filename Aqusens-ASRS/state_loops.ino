@@ -21,9 +21,9 @@ void calibrateLoop() {
    
 
   homeTube();
-  // liftupTube();
-  // delay(5*1000);
-  // unliftTube();
+  liftupTube();
+  delay(5*1000);
+  unliftTube();
   state = STANDBY;
 }
 
