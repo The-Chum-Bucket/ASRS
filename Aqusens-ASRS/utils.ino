@@ -39,8 +39,6 @@ void estopInit() {
 void rtcInit() {
   rtc.begin();
 
-  //const TimesConfig_t& times_cfg = getGlobalCfg().times_cfg;
-
   uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
 
   if (epoch == 0) { //err, likely timeout in communication with topside computer
@@ -66,9 +64,6 @@ void rtcInit() {
 
   dry_time.Minute = DEFAULT_DRY_TIME_MIN;
   dry_time.Second = DEFAULT_DRY_TIME_SEC;
-
-  tube_flush_time.Minute = TOT_FLUSH_TIME_S / 60;
-  tube_flush_time.Second = TOT_FLUSH_TIME_S % 60;
   
   updateAlarm();
 }
@@ -722,6 +717,12 @@ void setAlarmFault(AlarmFault fault_type) {
  */
 
  uint32_t requestEpochTime(void) {
+  resetLCD();
+  lcd.setCursor(0,1);
+  lcd.print("SENDING PYTHON");
+  lcd.setCursor(0,2);
+  lcd.print("TIME REQUEST...");
+  
   sendToPython(REQUEST_TIME);
 
   unsigned long start_time = millis();

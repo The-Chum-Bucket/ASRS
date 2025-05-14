@@ -33,37 +33,18 @@ volatile uint32_t motor_pulses = 0; // Global position tracker, increments each 
 
 int8_t cursor_y = 2; // keeps track of current cursor position
 
-
 // lcd.ino
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-
 volatile bool toggle = false; //Used for square wave generation in Timer Interrupt
 MotorDir global_motor_state = OFF;
-float MOTORSPEED_FACTOR;
 
 float drop_distance_cm;
 
-tmElements_t next_sample_time, sample_interval, soak_time, dry_time, tube_flush_time, aqusens_flush_time;
+tmElements_t next_sample_time, sample_interval, soak_time, dry_time;
 
-uint8_t last_setting_page = 4; // amount of settings pages
+uint8_t last_setting_page = 2; // amount of settings pages
 uint8_t settings_page = 1; // current settings page
-
-
-unsigned long FLUSH_TIME_S, AQUSENS_TIME_S, TOT_FLUSH_TIME_S;
-unsigned long AIR_GAP_TIME_MS, LAST_AIR_GAP_TIME_MS, WATER_RINSE_TIME_MS;
-unsigned long DUMP_WATER_TIME_MS, RINSE_TUBE_TIME_MS;
-
-typedef enum FlushState {
-  INIT,
-  DUMP_TUBE,
-  ROPE_DROP,
-  RINSE_ROPE_HOME,
-  RINSE_TUBE,
-  RINSE_AQUSENS,
-} FlushState;
-
-
 
 volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/released
 
@@ -79,10 +60,7 @@ typedef enum SolenoidState {
 SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;
 
-
 bool debug_ignore_timeouts = true;
-
-
 
 /* Setup and Loop **************************************************************/
 void setup() {
@@ -161,12 +139,6 @@ void loop() {
       break;
     case SET_DRY_TIME: // Settings option to set dry time
       setDryTimeLoop();
-      break;
-    case SET_TUBE_FLUSH_TIME: // Settings option to set dry time
-      setTubeFlushTimeLoop();
-      break;
-    case SET_AQUSENS_FLUSH_TIME: // Settings option to set dry time
-      setAqusensFlushTimeLoop();
       break;
     default:
       break;

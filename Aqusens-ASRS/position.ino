@@ -6,14 +6,6 @@
 
 /**
  * @brief returns tube to home position at constant speed
- *        Version for Tube Flush end_time so it can update LCD
- *        Overloaded for code readability's sake
- * @param end_time from tubeFlushLoop, the calculated end time from millis()
- */
-
-
-/**
- * @brief returns tube to home position at constant speed
  *        Re-homes the tube during initializing and calibrate state
  * 
  */
@@ -34,6 +26,12 @@
   turnMotorOff();
 }
 
+/**
+ * @brief returns tube to home position at constant speed
+ *        Version for Tube Flush end_time so it can update LCD
+ *        Overloaded for code readability's sake
+ * @param end_time from tubeFlushLoop, the calculated end time from millis()
+ */
 void homeTube(unsigned long end_time, FlushStage curr_stage) {
   
   setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);

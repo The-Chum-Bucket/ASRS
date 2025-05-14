@@ -18,7 +18,7 @@ void settingsLoop() {
     if (settings_page != last_setting_page)
       key_pressed = cursorSelect(0, 2);
     else
-      key_pressed = cursorSelect(0, 0);
+      key_pressed = cursorSelect(0, 2);
 
     if (key_pressed > 0) {
       last_key_press = rtc.getMinutes();
@@ -28,8 +28,6 @@ void settingsLoop() {
       if (settings_page == 1) { // exits to STANDBY mode on first page left select
         resetLCD();
         state = STANDBY;
-        // export_cfg_to_sd();
-        // // TODO: save config before leaving
         cursor_y = 2;
       }
       else { // else, returns to previous settings page
@@ -70,52 +68,20 @@ void settingsLoop() {
             break;
           
           case 1:
-            state = SET_TUBE_FLUSH_TIME;
-            break;
-          
-          case 2:
-            state = SET_AQUSENS_FLUSH_TIME;
-            break;
-          
-          default:
-            break;
-        }
-      }
-
-      else if (settings_page == 3) {
-        switch(cursor_y) {
-          case 0:
             state = SET_DRY_TIME;
             break;
           
-          case 1:
-            state = ADD_EVENT;
-            break;
-          
           case 2:
-            state = VIEW_EVENTS;
+            state = FILTER_STATUS;
             break;
           
           default:
-            break;
-        }
-      }
-
-      else if (settings_page == 4) {
-        switch(cursor_y) {
-          case 0:
-            state = FILTER_STATUS;
-            break;
-          case 1:
-            state = SET_CONTRAST;
             break;
         }
       }
     }
 
     if (rtc.getMinutes() == ((last_key_press + 5) % 60)) {
-      // // TODO: save cfg before leaving
-      // export_cfg_to_sd();
       state = STANDBY;
     }
   }
@@ -123,7 +89,7 @@ void settingsLoop() {
 
 /**
  * @brief SET_START_TIME
- * 
+ * TODO: do we still want this?
  */
 void setStartTimeLoop() {
   tmElements_t adjusted_start_time;
@@ -172,7 +138,7 @@ void setStartTimeLoop() {
 
 /**
  * @brief SET_CLOCK
- * 
+ * TODO: update to use python script to get current epoch from computer
  */
 void setClockLoop() {
 
@@ -291,8 +257,6 @@ void setSoakTimeLoop() {
   updateSetSoakOrDryOrFlushLCD(cursor_pos, new_soak_time);
   lcd.blink();
 
-  //TimeUnit_t& soak_times_cfg = getGlobalCfg().times_cfg.soak_time;
-
   while (state == SET_SOAK_TIME) {
     key = getKeyDebounce();
     
@@ -301,9 +265,6 @@ void setSoakTimeLoop() {
         //breakTime(makeTime(new_interval), new_interval);
         soak_time.Second = new_soak_time.Second;
         soak_time.Minute = new_soak_time.Minute;
-        
-        // soak_times_cfg.min = new_soak_time.Minute;
-        // soak_times_cfg.sec = new_soak_time.Second;
 
         lcd.noBlink();
         state = SETTINGS;
@@ -344,9 +305,6 @@ void setDryTimeLoop() {
   updateSetSoakOrDryOrFlushLCD(cursor_pos, new_dry_time);
   lcd.blink();
 
-  //TimeUnit_t& dry_times_cfg = getGlobalCfg().times_cfg.dry_time;
-
-
   while (state == SET_DRY_TIME) {
     key = getKeyDebounce();
     
@@ -356,9 +314,6 @@ void setDryTimeLoop() {
         //breakTime(makeTime(new_interval), new_interval);
         dry_time.Second = new_dry_time.Second;
         dry_time.Minute = new_dry_time.Minute;
-
-        //dry_times_cfg.min = new_dry_time.Minute;
-        //dry_times_cfg.sec = new_dry_time.Second;
 
 
         lcd.noBlink();
@@ -380,106 +335,6 @@ void setDryTimeLoop() {
       if (state == SET_DRY_TIME) {
       updateSetSoakOrDryOrFlushLCD(cursor_pos, new_dry_time);
       }
-    } 
-  }
-}
-
-/**
- * @brief SET_TUBE_FLUSH_TIME
- * 
- */
-void setTubeFlushTimeLoop() {
-  tmElements_t new_tube_flush_time;
-  new_tube_flush_time.Second = tube_flush_time.Second;
-  new_tube_flush_time.Minute = tube_flush_time.Minute;
-  char key;
-  uint8_t cursor_pos = 0; // Holds time-setting position of cursor for "00 00" (Hour Min)
-                         // Does not include spacing/colons/hyphens, ranges 0 to 3.
-
-  resetLCD();
-  initSetSoakOrDryOrFlushLCD();
-  updateSetSoakOrDryOrFlushLCD(cursor_pos, new_tube_flush_time);
-  lcd.blink();
-
-  while (state == SET_TUBE_FLUSH_TIME) {
-    key = getKeyDebounce();
-    
-    if (key != NULL) {
-
-      if (key == 'S') {
-        tube_flush_time.Second = new_tube_flush_time.Second;
-        tube_flush_time.Minute = new_tube_flush_time.Minute;
-        lcd.noBlink();
-        state = SETTINGS;
-      }
-
-      else if (key == 'L' && cursor_pos > 0) {
-        cursor_pos--;
-      }
-
-      else if (key == 'R' && cursor_pos < 3) {
-        cursor_pos++;
-      }
-
-      else if (key == 'U' || key == 'D') {
-        adjustSetSoakOrDryDigit(key, &new_tube_flush_time, &cursor_pos);
-      }
-
-      if (state == SET_TUBE_FLUSH_TIME) {
-      updateSetSoakOrDryOrFlushLCD(cursor_pos, new_tube_flush_time);
-      }
-    } 
-  }
-}
-
-/**
- * @brief SET_AQUSENS_FLUSH_TIME
- * 
- */
-void setAqusensFlushTimeLoop() {
-  tmElements_t new_aqusens_flush_time;
-  new_aqusens_flush_time.Second = aqusens_flush_time.Second;
-  new_aqusens_flush_time.Minute = aqusens_flush_time.Minute;
-  char key;
-  uint8_t cursor_pos = 0; // Holds time-setting position of cursor for "00 00" (Hour Min)
-                         // Does not include spacing/colons/hyphens, ranges 0 to 3.
-
-  resetLCD();
-  initSetSoakOrDryOrFlushLCD();
-  updateSetSoakOrDryOrFlushLCD(cursor_pos, new_aqusens_flush_time);
-  lcd.blink();
-
-  while (state == SET_AQUSENS_FLUSH_TIME) {
-    key = getKeyDebounce();
-    
-    if (key != NULL) {
-
-      if (key == 'S') {
-        aqusens_flush_time.Second = new_aqusens_flush_time.Second;
-        aqusens_flush_time.Minute = new_aqusens_flush_time.Minute;
-        lcd.noBlink();
-        state = SETTINGS;
-      }
-
-      else if (key == 'L' && cursor_pos > 0) {
-        cursor_pos--;
-      }
-
-      else if (key == 'R' && cursor_pos < 3) {
-        cursor_pos++;
-      }
-
-      else if (key == 'U' || key == 'D') {
-        adjustSetSoakOrDryDigit(key, &new_aqusens_flush_time, &cursor_pos);
-      }
-
-      if (state == SET_AQUSENS_FLUSH_TIME) {
-      updateSetSoakOrDryOrFlushLCD(cursor_pos, new_aqusens_flush_time);
-      }
-
-      // Serial.print(key);
-      // Serial.println(cursor_pos);
-    
     } 
   }
 }

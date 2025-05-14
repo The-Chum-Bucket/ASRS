@@ -30,7 +30,6 @@
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
-#define CONFIG_FILENAME   ("CONFIG~1.JSO")
 #define GMT_TO_PST        (8)
 
 /************************* Motor Configuration (motor.ino) *************************/
@@ -154,16 +153,10 @@ enum StateEnum {
   SET_INTERVAL,
   ENSURE_SAMPLE_START,
   SET_START_TIME,
-  SET_TUBE_FLUSH_TIME,
-  SET_AQUSENS_FLUSH_TIME,
-  ADD_EVENT,
-  VIEW_EVENTS,
   SET_CLOCK,
   SET_DRY_TIME,
   SET_SOAK_TIME,
-  FILTER_STATUS,
-  SET_BRIGHTNESS,
-  SET_CONTRAST
+  FILTER_STATUS
 };
 
 // Faults
@@ -175,7 +168,7 @@ typedef enum AlarmFault {
   TOPSIDE_COMP_COMMS
 } AlarmFault;
 
-//Stages for the flushing procedure
+// Stages for the flushing procedure
 typedef enum FlushStage { 
   NULL_STAGE                = -1,
   DUMP_SAMPLE               =  0,
