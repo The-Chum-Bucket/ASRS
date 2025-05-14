@@ -206,6 +206,8 @@ void recoverLoop() {
  */
 void sampleLoop() {
   pumpControl(START_PUMP, 0, NULL_STAGE);
+
+  preSampleLCD();
   resetLCD();
 
   unsigned long start_time = millis();
@@ -215,9 +217,13 @@ void sampleLoop() {
 
   
   // TODO: wrap this in a meaningful function name (inline?)
-  sendToPython("S");
-  delay(500); //Delay for a half second, wait for message to be processed...
-  sendToPython(String(SAMPLE_TIME_SEC));
+  
+  
+  if (state == SAMPLE) {
+    sendToPython("S");
+    delay(500); //Delay for a half second, wait for message to be processed...
+    sendToPython(String(SAMPLE_TIME_SEC));
+  }
 
   while (state == SAMPLE) 
   {

@@ -261,6 +261,61 @@ void sampleLCD(unsigned long end_time) {
   lcd.print("C");
 }
 
+void preSampleLCD() {
+
+
+  lcd.setCursor(2, 0);
+  lcd.print("LOADING SAMPLE");
+
+  lcd.setCursor(5, 2);
+  lcd.print("SEC REMAINING");
+
+  char secString[3];
+  unsigned long start_time = millis();
+  unsigned long curr_time = start_time;
+  unsigned long end_time = start_time + PRE_SAMPLE_LOAD_TIME_MS;
+  unsigned long last_time_lcd_update_time = 0;
+
+  int secRemaining;
+
+  while (curr_time < end_time) {
+
+    if (checkEstop()) {
+      setAlarmFault(ESTOP);
+      pumpControl(STOP_PUMP, 0, NULL_STAGE);
+      return;
+    }
+
+    curr_time = millis();
+    secRemaining = int((end_time - curr_time) / 1000) + 1; //Rounds up, displays time 45-1 and not 44 to 0
+
+    if (curr_time - last_time_lcd_update_time > 500) {//update every 500ms
+      snprintf(secString, sizeof(secString), "%02d", secRemaining);
+      lcd.setCursor(2, 2);
+      lcd.print(secString);
+
+      lcd.setCursor(16, 0);
+
+      switch (secRemaining % 4) {
+        case 0:
+          lcd.print("...");
+          break;
+        case 1:
+          lcd.print(".. ");
+          break;
+        case 2:
+          lcd.print(".  ");
+          break;
+        case 3:
+          lcd.print("   ");
+          break;
+      }
+    }
+  }
+
+  return;
+}
+
 /**
  * @brief FLUSH_SYSTEM screen
  * 

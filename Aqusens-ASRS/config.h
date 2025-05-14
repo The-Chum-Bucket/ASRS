@@ -26,6 +26,7 @@
 
 // #define SAMPLE_TIME_SEC              60*6 //Sample for 6 minutes
 #define SAMPLE_TIME_SEC 3 * 60
+#define PRE_SAMPLE_LOAD_TIME_MS 45 * 1000
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
