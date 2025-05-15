@@ -188,26 +188,10 @@ void releaseLCD(String position) {
  * @param sec_time String of seconds remaining in soak time
  * @param num_dots Number of dots to display in flashing ...
  */
-void soakLCD(String min_time, String sec_time, int num_dots) {
+void soakLCD(String min_time, String sec_time) {
   lcd.setCursor(5,0);
   lcd.print("SOAKING");
   lcd.setCursor(12, 0);
-
-
-  switch (num_dots) {
-    case 0: 
-      lcd.print("...");
-      break;
-    case 1:
-      lcd.print(".. ");
-      break;
-    case 2:
-      lcd.print(".  ");
-      break;
-    case 3:
-      lcd.print("   ");
-      break;
-  }
 
 
   lcd.setCursor(3,2);
@@ -276,7 +260,7 @@ void preSampleLCD() {
   unsigned long end_time = start_time + PRE_SAMPLE_LOAD_TIME_MS;
   unsigned long last_time_lcd_update_time = 0;
 
-  int secRemaining;
+  int sec_remaining;
 
   while (curr_time < end_time) {
 
@@ -287,33 +271,48 @@ void preSampleLCD() {
     }
 
     curr_time = millis();
-    secRemaining = int((end_time - curr_time) / 1000) + 1; //Rounds up, displays time 45-1 and not 44 to 0
+    sec_remaining = int((end_time - curr_time) / 1000) + 1; //Rounds up, displays time 45-1 and not 44 to 0
 
     if (curr_time - last_time_lcd_update_time > 500) {//update every 500ms
-      snprintf(secString, sizeof(secString), "%02d", secRemaining);
+      snprintf(secString, sizeof(secString), "%02d", sec_remaining);
       lcd.setCursor(2, 2);
       lcd.print(secString);
 
       lcd.setCursor(16, 0);
+      printDots(sec_remaining);
 
-      switch (secRemaining % 4) {
-        case 0:
-          lcd.print("...");
-          break;
-        case 1:
-          lcd.print(".. ");
-          break;
-        case 2:
-          lcd.print(".  ");
-          break;
-        case 3:
-          lcd.print("   ");
-          break;
-      }
+      
     }
   }
 
   return;
+}
+
+/**
+ * @brief Prints the differing amounts of dots during stages
+ *        while the system waits (sampling, flushing, etc)
+ * 
+ *        Assumes user has moved the cursor to the correct position
+ *        to print the dots
+ *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ * @param sec_remaining number of seconds remaining in the current screen's stage
+ */
+
+void printDots(int sec_remaining) {
+  switch (sec_remaining % 4) {
+    case 0:
+      lcd.print("...");
+      break;
+    case 1:
+      lcd.print(".. ");
+      break;
+    case 2:
+      lcd.print(".  ");
+      break;
+    case 3:
+      lcd.print("   ");
+      break;
+  }
 }
 
 /**
@@ -330,7 +329,7 @@ void preSampleLCD() {
  * @param num_dots Number of dots to display in flashing ...
  * @param temp_flag Flag that determines whether temperature data is displayed
  */
-void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, FlushStage curr_stage) {
+void flushLCD(String min_time, String sec_time, bool temp_flag, FlushStage curr_stage) {
   static FlushStage last_stage = NULL_STAGE;
 
   if (last_stage == NULL_STAGE || last_stage != curr_stage) {
@@ -373,20 +372,6 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
   lcd.setCursor(1,0);
   lcd.print("FLUSHING SYSTEM");
 
-  switch (num_dots) {
-    case 0: 
-      lcd.print("...");
-      break;
-    case 1:
-      lcd.print(".. ");
-      break;
-    case 2:
-      lcd.print(".  ");
-      break;
-    case 3:
-      lcd.print("   ");
-      break;
-  }
   lcd.setCursor(5, 2);
   lcd.print("TEMP: ");
   
@@ -417,26 +402,10 @@ void flushLCD(String min_time, String sec_time, int num_dots, bool temp_flag, Fl
  * @param sec_time String of seconds remaining in dry time
  * @param num_dots Number of dots to display in flashing ...
  */
-void dryLCD(String min_time, String sec_time, int num_dots) {
+void dryLCD(String min_time, String sec_time) {
   lcd.setCursor(6,0);
   lcd.print("DRYING");
   lcd.setCursor(12, 0);
-
-
-  switch (num_dots) {
-    case 0: 
-      lcd.print("...");
-      break;
-    case 1:
-      lcd.print(".. ");
-      break;
-    case 2:
-      lcd.print(".  ");
-      break;
-    case 3:
-      lcd.print("   ");
-      break;
-  }
 
 
   lcd.setCursor(3,2);

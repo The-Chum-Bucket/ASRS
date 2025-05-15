@@ -146,21 +146,25 @@ void soakLoop() {
     minutes_remaining = seconds_remaining / 60;
 
     // Format seconds with leading zero if necessary
-    if (seconds_remaining % 60 > 9) {
-      snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-    } else {
-      snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
-    }
+    // if (seconds_remaining % 60 > 9) {
+    //   snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
+    // } else {
+    //   snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
+    // }
 
-    // Format minutes with leading zero if necessary
-    if (minutes_remaining > 9) {
-      snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-    } else {
-      snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
-    }
+    // // Format minutes with leading zero if necessary
+    // if (minutes_remaining > 9) {
+    //   snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
+    // } else {
+    //   snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
+    // }
+    snprintf(sec_time, sizeof(sec_time), "%02i", seconds_remaining % 60);
+    snprintf(min_time, sizeof(min_time), "%02i", minutes_remaining);
+
 
     // Update LCD with remaining time
-    soakLCD(min_time, sec_time, seconds_remaining % 4);
+    soakLCD(min_time, sec_time);
+    printDots(seconds_remaining);
   }
 
   state = RECOVER;
@@ -428,23 +432,28 @@ void dryLoop() {
     minutes_remaining = seconds_remaining / 60;
 
     // Format seconds with leading zero if necessary
-    if (seconds_remaining % 60 > 9) {
-      snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-    } 
-    else {
-      snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
-    }
+    // if (seconds_remaining % 60 > 9) {
+    //   snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
+    // } 
+    // else {
+    //   snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
+    // }
 
-    // Format minutes with leading zero if necessary
-    if (minutes_remaining > 9) {
-      snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-    } 
-    else {
-      snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
-    }
+    // // Format minutes with leading zero if necessary
+    // if (minutes_remaining > 9) {
+    //   snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
+    // } 
+    // else {
+    //   snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
+    // }
+
+    snprintf(sec_time, sizeof(sec_time), "%02i", seconds_remaining % 60);
+    snprintf(min_time, sizeof(min_time), "%02i", minutes_remaining);
 
     // Update LCD with remaining time
-    dryLCD(min_time, sec_time, seconds_remaining % 4); 
+    dryLCD(min_time, sec_time); 
+    printDots(seconds_remaining);
+
   }
 
   unliftTube();
