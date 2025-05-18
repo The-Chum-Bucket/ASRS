@@ -115,7 +115,15 @@ float getTideData(){
     return interpolated_pred;
 }
 
-
+/**
+ * @brief Retrieves the distance to drop based on tide data.
+ * 
+ * Attempts to get the drop distance from the topside computer first.
+ * If communication fails or times out, falls back to interpolated SD card tide data.
+ * Applies default pier offset and returns adjusted drop distance in cm.
+ * 
+ * @return float Drop distance in centimeters.
+ */
 
 float getDropDistance(){
     float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
@@ -162,13 +170,21 @@ float getDropDistance(){
     return PIER_DEFAULT_DIST_CM - drop_distance_cm + 60.0f;
 }
 
+/**
+ * @brief Recursively lists all files and directories on the SD card.
+ * 
+ * Prints the name and size of each file found under the given directory.
+ * Indents output based on directory depth.
+ * 
+ * @param dir The starting directory to list.
+ * @param numTabs Number of tab characters to indent for nested directories.
+ */
+
+
 void listFiles(File dir, int numTabs) {
-    while (true) {
-        File entry = dir.openNextFile();
-        if (!entry) {
-            // No more files
-            break;
-        }
+    File entry = dir.openNextFile();
+    while (entry) {
+        
         for (int i = 0; i < numTabs; i++) {
             Serial.print("\t");
         }
@@ -181,5 +197,7 @@ void listFiles(File dir, int numTabs) {
             Serial.println(entry.size(), DEC); // Print file size
         }
         entry.close();
+        
+        entry = dir.openNextFile();
     }
 }

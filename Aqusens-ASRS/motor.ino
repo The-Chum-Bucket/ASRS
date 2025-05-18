@@ -1,6 +1,3 @@
-// IDK why this needs to be here but it does 
-void setMotorDir(MotorDir dir); 
-
 /**
  * @brief Initialize motor pins
  */
@@ -15,6 +12,21 @@ void motorInit() {
  */
 bool isMotorAlarming() {
     return analogRead(ALARM_PLUS) > ALARM_THRESHOLD_VALUE;
+}
+
+/**
+ * @brief Checks the motor, sets alarm and turns motor off if it is
+ * 
+ * @return True if motor is alarming, false if all is well (to keep consistent with checkEstop())      
+ */
+bool checkMotor() {
+    if (isMotorAlarming()) {
+        turnMotorOff();
+        setAlarmFault(MOTOR);
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -69,9 +81,7 @@ void resetMotor(void) {
 
 /**
  * @brief set motor speed to 0
- * @param double_check bool if motor speed needs to be set to some small number first
- * FIXME: why need the double_check
- * FIXED: turns out when you write it normally it works
+ * 
  */
 
 void turnMotorOff() {
@@ -81,15 +91,11 @@ void turnMotorOff() {
 
 
 /**
- * @brief Set the motor frequency
+ * @brief Set the motor step pin output's frequency
  * @param frequency frequency to set the motor PWM to
  */
 void setMotorFreq(uint32_t frequency) {
     //Disables timer clock, disabling output
-    // Serial.print("STATE IS ");
-    // Serial.print(state);
-    // Serial.print("   SETTING FREQ TO ");
-    // Serial.println(frequency);
 
     if (frequency == 0) {
         TC5->COUNT16.CTRLA.bit.ENABLE = 0;

@@ -20,11 +20,14 @@ void calibrateLoop() {
   }  
    
 
-  homeTube();
+  homeTube(); 
   liftupTube();
   delay(5*1000);
   unliftTube();
-  state = STANDBY;
+
+  if (state != ALARM) {
+    state = STANDBY;
+  }
 }
 
 /**
@@ -105,7 +108,8 @@ void releaseLoop() {
 
   // actually drop the tube
   while (state == RELEASE){
-    if (isMotorAlarming()) setAlarmFault(MOTOR);
+    if (checkMotor() || checkEstop())
+      continue; //Continue to next iteration of the loop, where state will be checked again (and will be ALARM)
 
     if (dropTube(drop_distance_cm)) {
       state = SOAK;
@@ -132,6 +136,7 @@ void soakLoop() {
 
   while (state == SOAK && millis() < end_time) {
     checkEstop();
+    checkMotor();
 
     // Calculate remaining time, accounting for millis() overflow
     uint32_t millis_remaining;
@@ -167,7 +172,8 @@ void soakLoop() {
     printDots(seconds_remaining);
   }
 
-  state = RECOVER;
+  if (state != ALARM) 
+    state = RECOVER;
 }
 
 /**
@@ -177,21 +183,17 @@ void soakLoop() {
  * Checks for E-Stop press
  */
 void recoverLoop() {
-  char pos[6];
-
   resetLCD();
 
   while (state == RECOVER) {
     // checkEstop();
-    if (isMotorAlarming()) setAlarmFault(MOTOR);
+    if (checkMotor() || checkEstop()) //If motor is alarming or estop is pressed, continue to next iter
+      continue;
     
 
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state
       state = SAMPLE;
     }
-
-    // snprintf(pos, sizeof(pos), "%.2fm", tube_position_f / 100.0f);
-    // recoverLCD(pos);
   }
 }
 
@@ -202,6 +204,7 @@ void recoverLoop() {
  */
 void sampleLoop() {
   pumpControl(START_PUMP, 0, NULL_STAGE);
+
 
   preSampleLCD();
   resetLCD();
@@ -266,9 +269,13 @@ void sampleLoop() {
 }
 
 /**
- * @brief runs the system flush procedure, coded as a finite state machine with discrete steps, adjust timings in config.h
+ * @brief Runs the system flush procedure as a finite state machine with discrete stages.
  * 
+ * The flush process includes dumping the sample, air bubble, line flush,
+ * freshwater device flush, air flush, and final homing of the tube.
+ * Adjust timings and durations in config.h.
  */
+
 void flushSystemLoop() {
   resetLCD();
   int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
@@ -295,6 +302,20 @@ void flushSystemLoop() {
   
 
   while (state == FLUSH_SYSTEM) {
+
+    ///////////// ASK ROB AND ALEXIS ABOUT THIS ////////////////////
+    
+    // if (checkEstop()) {
+    //   closeAllSolenoids();
+    //   pumpControl(STOP_PUMP, end_time, curr_stage);
+    // }
+
+    ////////////////////////////////////////////////////////////////
+    
+    if (checkMotor()) { //If motor is alarming, continue to break out of while loop (state will be changed by call)
+      continue;
+    }
+
     switch(curr_stage) {
       case DUMP_SAMPLE:
         if (stagesStarted[DUMP_SAMPLE] == false) {
@@ -389,10 +410,12 @@ void flushSystemLoop() {
 
 
 /**
- * @brief DRY
+ * @brief Executes the drying process after flushing.
  * 
- * No selection options
+ * Lifts the tube, displays countdown timer for drying duration,
+ * checks for E-Stop, then transitions to standby.
  */
+
 void dryLoop() {
   // turn off Aqusens pump before transitioning to dry state
   unsigned long start_time = millis();
@@ -403,21 +426,12 @@ void dryLoop() {
   int seconds_remaining, minutes_remaining;
 
   resetLCD();
-  //homeTube();
+
   liftupTube();
   uint32_t end_time = curr_time + (60 * dry_time.Minute * 1000) + (dry_time.Second * 1000);
 
   while (state == DRY && end_time > millis()) {
     checkEstop();
-
-    // if (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS < millis()) { //If timeout ocurred...
-    //   if (debug_ignore_timeouts)
-    //     state = STANDBY;
-    //   else 
-    //     setAlarmFault(TOPSIDE_COMP_COMMS);
-      
-    //   continue;
-    // }
 
     // Calculate remaining time, accounting for millis() overflow
     if (end_time > millis()) {
@@ -431,22 +445,6 @@ void dryLoop() {
     seconds_remaining = millis_remaining / 1000;
     minutes_remaining = seconds_remaining / 60;
 
-    // Format seconds with leading zero if necessary
-    // if (seconds_remaining % 60 > 9) {
-    //   snprintf(sec_time, sizeof(sec_time), "%i", seconds_remaining % 60);
-    // } 
-    // else {
-    //   snprintf(sec_time, sizeof(sec_time), "0%i", seconds_remaining % 60);
-    // }
-
-    // // Format minutes with leading zero if necessary
-    // if (minutes_remaining > 9) {
-    //   snprintf(min_time, sizeof(min_time), "%i", minutes_remaining);
-    // } 
-    // else {
-    //   snprintf(min_time, sizeof(min_time), "0%i", minutes_remaining);
-    // }
-
     snprintf(sec_time, sizeof(sec_time), "%02i", seconds_remaining % 60);
     snprintf(min_time, sizeof(min_time), "%02i", minutes_remaining);
 
@@ -457,8 +455,9 @@ void dryLoop() {
   }
 
   unliftTube();
-  state = STANDBY;
 
+  if (state != ALARM)
+    state = STANDBY;
   }
 
 

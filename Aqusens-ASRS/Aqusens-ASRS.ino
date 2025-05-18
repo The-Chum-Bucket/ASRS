@@ -1,5 +1,5 @@
 //  -Aqusens-ASRS
-//  -Aqusens - Automated Sample Retrevial System V2.0
+//  -Aqusens - Automated Sample Retrieval System V2.0
 //  -Date of Last Revision: 2/26/25
 //  -Califonia Polytechnic State University
 //  -Bailey College of Science and Mathamatics Biology Department
@@ -24,7 +24,7 @@
 #include <ArduinoJson.h>
 #include "config.h" // Config file, change global defines here (reel radius, flush timing, etc.)
 
-volatile StateEnum state = STANDBY; //Global vars for tracking device state...
+volatile StateEnum state = CALIBRATE; //Global vars for tracking device state...
 volatile AlarmFault fault = NONE;   // and for tracking Alarm reason
 
 volatile uint32_t motor_pulses = 0; // Global position tracker, increments each pulse when lowering, decrements each pulse when raising 
@@ -77,7 +77,7 @@ void setup() {
   estopInit();
   motorInit();
 
-  state = CALIBRATE;
+  // state = CALIBRATE;
   
   // Serial.println("[SETUP] done with init");
 }

@@ -245,6 +245,17 @@ void sampleLCD(unsigned long end_time) {
   lcd.print("C");
 }
 
+
+/**
+ * @brief LOADING SAMPLE screen
+ * 
+ *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ * |_ L O A D I N G   S A M P L E . . . _ _|
+ * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
+ * |_ 4 5   S E C   R E M A I N I N G _ _ _|
+ * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
+ */
+
 void preSampleLCD() {
 
 
@@ -507,8 +518,8 @@ void initSetSoakOrDryOrFlushLCD() {
  * 
  *  Update settings page option to set clock
  * 
- * @param cursor_pos //TODO: Jack - add a description of the parameter
- * @param adjusted_time 
+ * @param cursor_pos current position of the cursor on LCD within the "set clock" screen's options
+ * @param adjusted_time new time to be displayed as the user updates it
  */
 void updateSetClockLCD(uint8_t cursor_pos, tmElements_t adjusted_time) {
   lcd.noBlink();

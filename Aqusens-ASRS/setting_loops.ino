@@ -137,9 +137,13 @@ void setStartTimeLoop() {
 }
 
 /**
- * @brief SET_CLOCK
- * TODO: update to use python script to get current epoch from computer
+ * @brief Handles user interface for setting the system clock manually.
+ * 
+ * Allows user to adjust the date and time. Saves to RTC and updates alarm
+ * when confirmed. This can be replaced or supplemented by syncing with
+ * a host computer via a Python script to fetch epoch time.
  */
+
 void setClockLoop() {
 
   tmElements_t adjusted_time;

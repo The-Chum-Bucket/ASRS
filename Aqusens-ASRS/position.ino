@@ -16,9 +16,11 @@
   delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
-  while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
+  while (!magSensorRead() && state != ALARM){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
     //Update LCD?
     checkEstop();
+    checkMotor();
+    
   }
 
   motor_pulses = 0;
@@ -66,6 +68,10 @@ bool dropTube(unsigned int distance_cm) {
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
   int curr_speed = 0;
 
+  if (checkEstop() || checkMotor()) {
+    return false;
+  }
+
   rampUpMotor(curr_speed, -DROP_SPEED_CM_SEC);
 
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
@@ -77,7 +83,7 @@ bool dropTube(unsigned int distance_cm) {
 
   while (motor_pulses <= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
     
-    if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+    if (checkEstop() || checkMotor()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
       return false;
     }
 
@@ -94,6 +100,7 @@ bool dropTube(unsigned int distance_cm) {
   rampDownMotor(curr_speed, 0);
 
   if (curr_time >= start_time + TUBE_TIMEOUT_ERR_TIME_MS) {
+    setAlarmFault(TUBE);
     return false; //Timed out, went 30s without actually stopping
   }
 
@@ -112,12 +119,17 @@ bool retrieveTube(float distance_cm) {
   bool stop_and_wait_flag = distance_cm < ALIGNMENT_TUBE_OPENING_DIST;
 
   int curr_speed = 0;
+
+  if (checkEstop() || checkMotor()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+      return false;
+  }
+
+
   rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC);
   // int curr_speed = RAISE_SPEED_CM_SEC;
 
   while (motor_pulses >= final_step_count && curr_time < start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS) {
-    if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
-      turnMotorOff();
+    if (checkEstop() || checkMotor()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
       return false;
     }
 
@@ -160,6 +172,7 @@ bool retrieveTube(float distance_cm) {
   turnMotorOff();
 
   if (curr_time >= start_time + TUBE_TIMEOUT_ERR_TIME_MS) {
+    setAlarmFault(TUBE);
     return false; //Timed out, went 45s without actually stopping
   }
 
@@ -233,14 +246,17 @@ bool retrieveTube(float distance_cm) {
 
 /**
  * @brief Lift the tube to the leaking position
- * @note This function is BLOCKING!!!
- * @note Assumes that tube is in the home position. IDK what happens if it isnt
+ * @warning assumes tube is in home position
+ * 
  */
 
 void liftupTube() {
   
   setMotorSpeed(DRAIN_LIFT_SPEED_CM_S);
-  while(magSensorRead()) {}; //Sit in this loop, waiting for the mag sensor to stop sensing the tube magnet
+  while(magSensorRead() && state != ALARM) {
+    checkMotor();
+    checkEstop();
+  }; //Sit in this loop, waiting for the mag sensor to stop sensing the tube magnet
                              // Once the magnetic sensor stop reading the magnet, the tube is pulled up enough
   turnMotorOff();
 
@@ -249,16 +265,22 @@ void liftupTube() {
 
 /**
  * @brief returns tube from lifted (to drain) state back to resting
- *
- * @param tube_state current tube state, true if lifted, false if resting
+ * @warning assumes tube is already in lifted position, no way to tell if 
+ *          it isn't as the "lifted" state is higher than the magnetic position sensor
  */
 
 void unliftTube() { // Resets tube back to home position after being lifted to dump excess sea/flushing water
     setMotorSpeed(DRAIN_HOME_SPEED_CM_S);
     
-    while(!magSensorRead()){}; //Wait for the magnetic sensor to trip again
+    while(!magSensorRead() && state != ALARM){
+      checkEstop();
+      checkMotor();
+    }; //Wait for the magnetic sensor to trip again
 
-    while(magSensorRead()){}; //Then wait for it to "untrip", want to overshoot the magnet and then rehome
+    while(magSensorRead() && state != ALARM){
+      checkEstop();
+      checkMotor();
+    }; //Then wait for it to "untrip", want to overshoot the magnet and then rehome
 
     homeTube();
 }

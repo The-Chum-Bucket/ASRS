@@ -82,8 +82,9 @@ void rtdInit() {
 /* Interrupt Functions *********************************************************/
 
 /**
- * @brief interrupt function for E-Stop
+ * @brief interrupt service routine triggered on falling edge for E-stop pin
  * 
+ * Sets the alarm fault to ESTOP and may perform emergency shutdown actions.
  */
 void onLowTrigger() {
   setAlarmFault(ESTOP);
@@ -139,8 +140,9 @@ void updateAlarm() {
 }
 
 /**
- * @brief interrupt function for alarm interrupt
+ * @brief interrupt service routine triggered by RTC alarm
  * 
+ * Handles alarm event by updating the next sample time and changing system state.
  */
 void alarmTriggered() {
   // This will be called when the alarm is triggered
@@ -623,6 +625,7 @@ bool checkEstop() {
     estop_pressed = 1;
     // setAlarmFault(ESTOP); // ? i dont think this is needed
     setAlarmFault(ESTOP);
+    turnMotorOff();
     return true; //estop is pressed
   }
 
@@ -747,6 +750,8 @@ void setAlarmFault(AlarmFault fault_type) {
 
     curr_time = millis(); 
   }
+
+  setAlarmFault(TOPSIDE_COMP_COMMS);
 
   // Timeout, return 0 or some error value
   return 0;

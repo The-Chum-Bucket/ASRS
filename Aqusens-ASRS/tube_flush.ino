@@ -30,6 +30,7 @@ void closeAllSolenoids() {
  * 
  * 
  * @param end_time the calculated end time of the current flush cycle (passed from main flushing function above)
+ * @param curr_stage current stage of the flush procedure, needed to display curr state
  */
 void updateFlushTimer(unsigned long end_time, FlushStage curr_stage) {
   static unsigned long last_update_time = 0;
