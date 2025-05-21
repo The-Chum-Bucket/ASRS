@@ -13,7 +13,7 @@ void calibrateLoop() {
   updateSolenoid(CLOSED, SOLENOID_TWO);
 
   lcd.setCursor(0, 0);
-  lcd.print("CALIBRATING...");
+  lcd.print("CALIBRATING..."); // TODO: build out a more descriptive LCD screen?
 
   if (checkEstop()) {
     return;
@@ -370,7 +370,7 @@ void flushSystemLoop() {
         }
         if (curr_time >= curr_stage_end_time) {
           closeAllSolenoids();
-          unliftTube();
+          unliftTube(); // TODO: is this re-homing?
           curr_stage = AIR_FLUSH;
         }
         break;
@@ -391,7 +391,7 @@ void flushSystemLoop() {
         if (stagesStarted[HOME_TUBE] == false) {
           //Serial.println("STARTING FINAL HOMING");
           //dropTube(2); //Drop 3 cm, want to overshoot the magnet
-          homeTube(end_time, curr_stage);
+          homeTube(end_time, curr_stage); // TODO: does it need to be rehomed? isn't it already home
           stagesStarted[HOME_TUBE] = true;
           state = DRY;
         }

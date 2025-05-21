@@ -1,11 +1,9 @@
 /**
  * @brief SETTINGS
  * 
- * Four page options:
- *    - INTERVAL/START TIME/CLOCK
- *    - SOAK/FLUSH/DRY TIME
- *    - ADD EVENT/VIEW EVENTS/FILTER STATUS
- *    - BRIGHTNESS/CONTRAST
+ * Two page options:
+ *    - SET_INTERVAL/SET_START_TIME/SET_CLOCK
+ *    - SET_SOAK_TIME/SET_DRY_TIME/FILTER_STATUS
  */
 void settingsLoop() {
   uint8_t last_key_press = rtc.getMinutes();
@@ -71,8 +69,8 @@ void settingsLoop() {
             state = SET_DRY_TIME;
             break;
           
-          case 2:
-            state = FILTER_STATUS;
+          case 2: // TODO: this state needs to be implemented
+            state = FILTER_STATUS; // - displays status of water filter - when does it need to be replaced (and SD card data?)
             break;
           
           default:

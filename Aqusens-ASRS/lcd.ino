@@ -68,8 +68,8 @@ void settingsLCD(uint8_t page) {
   switch (page) {
     case 1:
       /*  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-       * |* I N T E R V A L _ _ _ _ _ _ _ _ _ _ _|
-       * |_ S T A R T _ T I M E _ _ _ _ _ _ _ _ _|
+       * |* S E T _ I N T E R V A L _ _ _ _ _ _ _|
+       * |_ S E T _ S T A R T _ T I M E _ _ _ _ _|
        * |_ S E T _ C L O C K _ _ _ _ _ _ _ _ _ _|
        * |< E X I T _ _ _ _ _ _ _ _ _ _ M O R E >|
        */
@@ -90,60 +90,21 @@ void settingsLCD(uint8_t page) {
     case 2:
       /*  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
        * |* S O A K _ T I M E _ _ _ _ _ _ _ _ _ _|
-       * |_ T U B E _ F L U S H _ T I M E _ _ _ _|
-       * |_ A Q U S E N S _ F L U S H _ T I M E _|
+       * |_ D R Y _ T I M E _ _ _ _ _ _ _ _ _ _ _|
+       * |_ F I L T E R _ S T A T U S _ _ _ _ _ _|
        * |< B A C K _ _ _ _ _ _ _ _ _ _ M O R E >|
        */
 
       lcd.setCursor(1, 0);
       lcd.print("SOAK TIME");
       lcd.setCursor(1, 1);
-      lcd.print("TUBE FLUSH TIME");
-      lcd.setCursor(1, 2);
-      lcd.print("AQUSENS FLUSH TIME");
-
-      lcd.setCursor(0, 3);
-      lcd.print("<BACK");
-      lcd.setCursor(15, 3);
-      lcd.print("MORE>");
-      break;
-    
-    case 3:
-      /*  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-       * |* D R Y _ T I M E _ _ _ _ _ _ _ _ _ _ _|
-       * |_ A D D _ E V E N T S _ _ _ _ _ _ _ _ _|
-       * |_ V I E W _ E V E N T S _ _ _ _ _ _ _ _|
-       * |< B A C K _ _ _ _ _ _ _ _ _ _ M O R E >|
-       */
-
-      lcd.setCursor(1, 0);
       lcd.print("DRY TIME");
-      lcd.setCursor(1, 1);
-      lcd.print("ADD EVENTS");
       lcd.setCursor(1, 2);
-      lcd.print("VIEW EVENTS");
-
-      lcd.setCursor(0, 3);
-      lcd.print("<BACK");
-      lcd.setCursor(15, 3);
-      lcd.print("MORE>");
-      break;
-
-    case 4:
-      /*  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-       * |* F I L T E R _ S T A T U S _ _ _ _ _ _|
-       * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
-       * |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
-       * |< B A C K _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
-       */
-
-      lcd.setCursor(1, 0);
       lcd.print("FILTER STATUS");
 
       lcd.setCursor(0, 3);
       lcd.print("<BACK"); // final page has no "more" option
       break;
-    
   }
 
   lcd.setCursor(0, cursor_y);
