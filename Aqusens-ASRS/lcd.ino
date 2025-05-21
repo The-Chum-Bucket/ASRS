@@ -693,6 +693,33 @@ void manualLCD() {
   lcd.print("SOLENOIDS");
   lcd.setCursor(1, 3);
   lcd.print("EXIT");
+
+  
+  static unsigned long lastUpdateTime = 0;
+  unsigned long currentTime = millis();
+
+  if (currentTime - lastUpdateTime >= 1000) {
+    lastUpdateTime = currentTime;
+
+    lcd.setCursor(12, 1);
+    lcd.print("SAMP:");
+    lcd.print(String((int)floor(readRTD(SAMPLE_TEMP_SENSOR))));
+    // lcd.print("SAMP:");
+    // lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
+    lcd.print("C");
+
+    lcd.setCursor(12, 2);
+    lcd.print("FLSH:");
+    lcd.print(String((int)floor(readRTD(FLUSHWATER_TEMP_SENSOR))));
+
+    // lcd.print("FLSH:");
+    // lcd.print(String(readRTD(FLUSHWATER_TEMP_SENSOR), 1));
+
+    
+    lcd.print("C");
+  }
+  
+
   
   lcd.setCursor(0, cursor_y);
   lcd.print("*");

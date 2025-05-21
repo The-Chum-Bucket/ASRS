@@ -66,7 +66,7 @@
 
 #define MANUAL_CONTROL_MOTOR_SPEED (15.0f)
 
-/************************* Tube FFlush Timings & Thresholds (tube_flush.ino) *************************/
+/************************* Tube FFush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
 #define LIFT_TUBE_TIME_S              (5.0f)
 #define AIR_BUBBLE_TIME_S             (90.0f)
@@ -76,7 +76,7 @@
 #define FRESHWATER_FLUSH_TIME_S       (150.0f)
 #define FINAL_AIR_FLUSH_TIME_S        (45.0f)
 #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
-#define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
+#define DEVICE_FLUSH_WATER_TEMP_MAX_C (27.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
 ////////////////////? TEST VALUES FOR DEBUGGING, REAL VALUES ABOVE
 // #define LIFT_TUBE_TIME_S              (5.0f)

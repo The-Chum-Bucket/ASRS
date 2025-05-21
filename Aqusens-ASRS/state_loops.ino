@@ -21,12 +21,13 @@ void calibrateLoop() {
    
 
   homeTube(); 
-  liftupTube();
-  delay(5*1000);
-  unliftTube();
+  // liftupTube();
+  // delay(5*1000);
+  // unliftTube();
 
   if (state != ALARM) {
-    state = STANDBY;
+    state = FLUSH_SYSTEM;
+    //state = STANDBY; Leaving for debug purposes, hard to test when system instantly flushes lol
   }
 }
 
@@ -303,14 +304,13 @@ void flushSystemLoop() {
 
   while (state == FLUSH_SYSTEM) {
 
-    ///////////// ASK ROB AND ALEXIS ABOUT THIS ////////////////////
     
-    // if (checkEstop()) {
-    //   closeAllSolenoids();
-    //   pumpControl(STOP_PUMP, end_time, curr_stage);
-    // }
+    if (checkEstop()) {
+      closeAllSolenoids();
+      pumpControl(STOP_PUMP, end_time, curr_stage);
+    }
 
-    ////////////////////////////////////////////////////////////////
+
     
     if (checkMotor()) { //If motor is alarming, continue to break out of while loop (state will be changed by call)
       continue;
