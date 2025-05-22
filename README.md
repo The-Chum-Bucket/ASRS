@@ -2,11 +2,11 @@
 Contributors: Jack Anderson, Emma Lucke, Danny Gutierrez, Deeba Khosravi, and Jorge Ramirez
 Codespace for the Arduino/C++ code running on the P1AM-100 PLC inside of the ASRS, as well as the corresponding Python script on the topside computer.
 
-## 📄 Setting Up `.env` Configuration
+##  Setting Up `.env` Configuration
 
 This project requires environment variables to send emails securely without hardcoding sensitive information into the public repository.
 
-### 🛠️ Step-by-Step Instructions
+### Step-by-Step Instructions
 
 1. **Create a `.env` file** in the same folder as the Python script in this project. The file will include the email username, password, SMTP server and port, and the email recipients (seperated by commas)
 
