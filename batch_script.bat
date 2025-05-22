@@ -22,7 +22,8 @@ python -m pip install --upgrade pip
 
 :: install requests and serial
 echo Installing required Python packages...
-python -m pip install requests pyserial pytz
+python -m pip install requests pyserial pytz python-dotenv
+
 
 :: change this to the command that is used to run the program on the actual Aqusens computer
 echo Running AqusensComm.py...
