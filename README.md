@@ -4,7 +4,7 @@ Codespace for the Arduino/C++ code running on the P1AM-100 PLC inside of the ASR
 
 ##  Setting Up `.env` Configuration
 
-This project requires environment variables to send emails securely without hardcoding sensitive information into the public repository.
+This project requires environment variables to send emails securely without hardcoding sensitive information into this public repository.
 
 ### Step-by-Step Instructions
 
