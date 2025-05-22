@@ -11,6 +11,8 @@ import requests
 import platform
 import calendar
 import pytz
+from terminalThread import *
+
 
 
 BAUD_RATE = 115200
@@ -25,6 +27,8 @@ SAMPLE_MESSAGE_TYPE     = "S"
 STOP_PUMP_MESSAGE_TYPE  = "F"
 START_PUMP_MESSAGE_TYPE = "P"
 EPOCH_TIME_QUERY_TYPE   = "C"
+
+
 
 CLI_DEBUG_MODE = False  # Set to False for real serial communication, True if you want to simulate usage on the command line
 
@@ -241,6 +245,11 @@ def sendEpochTime(ser):
 
 if __name__ == "__main__":
     ser = setup()
+
+    terminal = TerminalInterface()
+    terminal.start()
+    print("[ASRS TERMINAL] > ", end="", flush=True)
+
     while ser is None:
         time.sleep(0.5)
         print("Unable to set up serial connection. Retrying...")
@@ -251,6 +260,11 @@ if __name__ == "__main__":
             print("Serial disconnected. Reconnecting...")
             ser = setup()
             continue
+        
+        cmd = terminal.get_command()
+        if cmd:
+            handleTerminalInput(cmd)
+            print("[ASRS TERMINAL] > ", end="", flush=True)
 
         write_to = ser.readline().decode().strip() if ser.in_waiting else None
         if not write_to:
