@@ -18,5 +18,5 @@ This project requires environment variables to send emails securely without hard
    EMAIL_PASSWORD=iheartcalpoly
    EMAIL_SMTP_SERVER=smtp.calpoly.edu
    EMAIL_SMTP_PORT=1901
-   EMAIL_RECIPIENTS=jmustang@university.edu,kmustang@university.edu
+   EMAIL_RECIPIENTS=jmustang@calpoly.edu,kmustang@calpoly.edu
 
