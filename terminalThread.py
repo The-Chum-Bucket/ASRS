@@ -43,21 +43,34 @@ class TerminalInterface:
         self.output_queue.put(message)
 
 def handleTerminalInput(terminalCommand):
-    print(terminalCommand)
     match terminalCommand[0]:
-        case "updateInterval":
+        case "set-interval":
             if len(terminalCommand) != 3:
-                print("ERR: Invalid updateInterval usage!\n"
-                      "  Usage: updateInterval <hours> <minutes>\n")
-        case "stopSampling":
-            print("Stopping!")
-        case "startSampling":
-            print("startin!")
+                print("ERR: Invalid set-interval usage!\n"
+                      "  Usage: set-interval <hours> <minutes>\n")
+            else:
+                hours = terminalCommand[1]
+                minutes = terminalCommand[2]
+                
+                hour_str = "hour" if hours == 1 else "hours"
+                minute_str = "minute" if minutes == 1 else "minutes"
+                
+                print(f"Setting sampling interval to {hours} {hour_str} and {minutes} {minute_str}...")
+                print("Success")
+
+        case "stop-sampling":
+            print("Stopping interval sampling...")
+            print("Success")
+        case "start-sampling":
+            print("Starting interval sampling...")
+            print("Success")
+        case "help":
+            print("Valid commands:\n"
+                "  set-interval <hours> <minutes>      — Set the update interval (hours and minutes)\n"
+                "  start-sampling                      — Stop sampling process\n"
+                "  stop-sampling                       — Start sampling process")
         case _:
             print(
-                "ERR: UNKNOWN COMMAND\n"
-                "Valid commands:\n"
-                "  updateInterval <hours> <minutes>   — Set the update interval (hours and minutes)\n"
-                "  stopSample                         — Stop sampling process\n"
-                "  startSample                        — Start sampling process"
+                f"ERR: UNKNOWN COMMAND {terminalCommand[0]}\n"
+                  "Type \"help\" to view all commands"
             )
