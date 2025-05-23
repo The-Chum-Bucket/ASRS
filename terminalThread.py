@@ -2,6 +2,10 @@ import threading
 import queue
 import time
 
+isSampling = True
+hours = 8
+minutes = 0
+
 class TerminalInterface:
     def __init__(self):
         self.input_queue = queue.Queue()
@@ -43,34 +47,55 @@ class TerminalInterface:
         self.output_queue.put(message)
 
 def handleTerminalInput(terminalCommand):
+    global isSampling, hours, minutes
+
     match terminalCommand[0]:
         case "set-interval":
             if len(terminalCommand) != 3:
                 print("ERR: Invalid set-interval usage!\n"
                       "  Usage: set-interval <hours> <minutes>\n")
             else:
-                hours = terminalCommand[1]
-                minutes = terminalCommand[2]
+                hours = int(terminalCommand[1])
+                minutes = int(terminalCommand[2])
                 
                 hour_str = "hour" if hours == 1 else "hours"
                 minute_str = "minute" if minutes == 1 else "minutes"
                 
                 print(f"Setting sampling interval to {hours} {hour_str} and {minutes} {minute_str}...")
                 print("Success")
+                if not isSampling:
+                    print("WARNING: ASRS is not currently interval sampling!\n")
+                else:
+                    print("")
 
         case "stop-sampling":
-            print("Stopping interval sampling...")
-            print("Success")
+            if isSampling:
+                print("Stopping interval sampling...")
+                isSampling = False
+                print("Success\n")
+            else:
+                print("ASRS already has interval sampling enabled.\n")
         case "start-sampling":
-            print("Starting interval sampling...")
-            print("Success")
+            if not isSampling:
+                print("Starting interval sampling...")
+                isSampling = True
+                print("Success\n")
+            else:
+                print("ASRS already has interval sampling disabled.\n")
+        case "status":
+            status_string = "enabled" if isSampling else "disabled"
+            hour_str = " hour" if hours == 1 else " hours"
+            minute_str = " minute" if minutes == 1 else " minutes"
+            print(f"ASRS has interval sampling {status_string}, sampling every {hours}{hour_str} and {minutes}{minute_str}.\n")
+            
         case "help":
-            print("Valid commands:\n"
-                "  set-interval <hours> <minutes>      — Set the update interval (hours and minutes)\n"
-                "  start-sampling                      — Stop sampling process\n"
-                "  stop-sampling                       — Start sampling process")
+            print("Known commands:\n"
+                "  status                              — View the current status of the ASRS\n"
+                "  set-interval <hours> <minutes>      — Set the sampling interval (hours and minutes)\n"
+                "  start-sampling                      — Enable interval sampling\n"
+                "  stop-sampling                       — Disable interval sampling\n")
         case _:
             print(
                 f"ERR: UNKNOWN COMMAND {terminalCommand[0]}\n"
-                  "Type \"help\" to view all commands"
+                  "Type \"help\" to view all commands\n"
             )
