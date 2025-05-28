@@ -397,29 +397,64 @@ void dryLCD(String min_time, String sec_time) {
  *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
  * |_ _ S O L E N O I D _ C O N T R O L _ _|
  * |* S O L E N O I D _ 1 : _ O P E N _ _ _|
- * |_ S O L E N O I D _ 2 : _ C L O S E D _|
+ * |_ S O L E N O I D _ 2 : _ C L O S E D _| // TODO: UPDATE SCREEN!!
  * |< E X I T _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
  */
 void solenoidControlLCD() {
   lcd.setCursor(2, 0);
   lcd.print("SOLENOID CONTROL");
   lcd.setCursor(1, 1);
-  lcd.print("SOLENOID 1: ");
+  lcd.print("SV1:");
   
   if (solenoid_one_state == OPEN)
-    lcd.print("OPEN  ");
+    lcd.print("ON ");
   else 
-    lcd.print("CLOSED");
+    lcd.print("OFF");
 
   lcd.setCursor(1, 2);
-  lcd.print("SOLENOID 2: ");
+  lcd.print("SV2:");
   if (solenoid_two_state == OPEN)
-    lcd.print("OPEN  ");
+    lcd.print("ON ");
   else 
-    lcd.print("CLOSED");
+    lcd.print("OFF");
 
   lcd.setCursor(0, cursor_y);
   lcd.print("*");
+
+
+  static unsigned long lastUpdateTime = 0;
+  unsigned long currentTime = millis();
+
+  if (currentTime - lastUpdateTime >= 1000) {
+    lastUpdateTime = currentTime;
+
+    float rtd1, rtd2;
+
+    rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
+    rtd2 = readRTD(FLUSHWATER_TEMP_SENSOR);
+
+    lcd.setCursor(10, 1);
+    lcd.print("RTD1:");
+    
+    if (rtd1 < 10) {
+      lcd.print(" ");
+    }
+    lcd.print(String(rtd1, 1));
+    lcd.setCursor(19, 1);
+    lcd.print("C");
+
+    lcd.setCursor(10, 2);
+    lcd.print("RTD2:");
+    
+    if (rtd2 < 10) 
+      lcd.print(" ");
+    
+    
+    lcd.print(String(rtd2, 1));
+    lcd.setCursor(19, 2);
+    lcd.print("C");
+  }
+
 
   lcd.setCursor(0, 3);
   lcd.print("<EXIT");
@@ -693,31 +728,7 @@ void manualLCD() {
   lcd.print("SOLENOIDS");
   lcd.setCursor(1, 3);
   lcd.print("EXIT");
-
   
-  static unsigned long lastUpdateTime = 0;
-  unsigned long currentTime = millis();
-
-  if (currentTime - lastUpdateTime >= 1000) {
-    lastUpdateTime = currentTime;
-
-    lcd.setCursor(12, 1);
-    lcd.print("SAMP:");
-    lcd.print(String((int)floor(readRTD(SAMPLE_TEMP_SENSOR))));
-    // lcd.print("SAMP:");
-    // lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
-    lcd.print("C");
-
-    lcd.setCursor(12, 2);
-    lcd.print("FLSH:");
-    lcd.print(String((int)floor(readRTD(FLUSHWATER_TEMP_SENSOR))));
-
-    // lcd.print("FLSH:");
-    // lcd.print(String(readRTD(FLUSHWATER_TEMP_SENSOR), 1));
-
-    
-    lcd.print("C");
-  }
   
 
   

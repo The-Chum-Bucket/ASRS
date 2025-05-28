@@ -248,13 +248,15 @@ if __name__ == "__main__":
 
     terminal = TerminalInterface()
     terminal.start()
-    print("[ASRS TERMINAL] > ", end="", flush=True)
+    
 
     while ser is None:
         time.sleep(0.5)
         print("Unable to set up serial connection. Retrying...")
         ser = setup()
-
+    
+    print("[ASRS TERMINAL] > ", end="", flush=True)
+    
     while True:
         if ser is None or not ser.is_open:
             print("Serial disconnected. Reconnecting...")
