@@ -1,0 +1,4 @@
+requests
+pyserial
+pytz
+python-dotenv
