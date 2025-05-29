@@ -20,10 +20,9 @@ echo Updating pip...
 python -m ensurepip
 python -m pip install --upgrade pip
 
-:: install requests and serial
+:: install all required packages using pip
 echo Installing required Python packages...
-python -m pip install requests pyserial pytz python-dotenv
-
+python -m pip install -r requirements.txt
 
 :: change this to the command that is used to run the program on the actual Aqusens computer
 echo Running AqusensComm.py...
