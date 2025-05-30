@@ -8,17 +8,23 @@ def send_email(subject, body, to_addrs=None):
     """Sends an email using environment-configured SMTP credentials."""
 
     # Re-load .env each time to get the latest values (e.g. updated recipients)
-    load_dotenv()
+    #load_dotenv()
 
     # Configuration: load from environment variables set in .env
-    SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER", "smtp.office365.com")
-    SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", 587))
-    EMAIL_ADDRESS = os.getenv("EMAIL_USERNAME")
-    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    #SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER", "smtp.office365.com")
+    #SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", 587))
+    #EMAIL_ADDRESS = os.getenv("EMAIL_USERNAME")
+    #EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    
+    #EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "").split(",")
+    #EMAIL_RECIPIENTS = [email.strip() for email in EMAIL_RECIPIENTS if email.strip()]
+    EMAIL_ADDRESS = "nora.pier.test@gmail.com"
+    EMAIL_PASSWORD = "hixgxngnmbvjqmqw"
+    EMAIL_RECIPIENTS = ["jande180@calpoly.edu"]
     DEFAULT_FROM = EMAIL_ADDRESS
-    EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "").split(",")
-    EMAIL_RECIPIENTS = [email.strip() for email in EMAIL_RECIPIENTS if email.strip()]
-
+    SMTP_SERVER = "smtp.gmail.com"
+    SMTP_PORT = 465
+   
     if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
         raise ValueError("EMAIL_USERNAME and EMAIL_PASSWORD must be set in environment variables.")
 
