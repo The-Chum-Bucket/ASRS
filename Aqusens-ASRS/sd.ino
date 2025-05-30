@@ -129,7 +129,7 @@ float getDropDistance(){
     float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
 
     sendToPython("T");
-    drop_distance_cm = getTideData();
+    //drop_distance_cm = getTideData();
 
     // get the distance to drop from online or sd card
     unsigned long start_time = millis();

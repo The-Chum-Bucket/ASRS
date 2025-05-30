@@ -12,6 +12,7 @@ import platform
 import calendar
 import pytz
 from terminalThread import *
+import email_errs
 
 
 
@@ -27,6 +28,11 @@ SAMPLE_MESSAGE_TYPE     = "S"
 STOP_PUMP_MESSAGE_TYPE  = "F"
 START_PUMP_MESSAGE_TYPE = "P"
 EPOCH_TIME_QUERY_TYPE   = "C"
+
+COMMS_REPORT_MOTOR_ERR                     = "EM" 
+COMMS_REPORT_TUBE_ERR                      = "ET"  
+COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR = "EW"  
+COMMS_REPORT_ESTOP_PRESSED                 = "EE"
 
 
 
@@ -73,6 +79,28 @@ def detect_serial_port():
             if ports:
                 return ports[0]
     raise RuntimeError("No valid serial port found for your OS.")
+
+
+def reportErr(err_type):
+    email_subject = ""
+    email_body    = ""
+    if (err_type == COMMS_REPORT_ESTOP_PRESSED):
+        email_body = "ESTOP ERR"
+        email_subject = "ESTOP_ERR"
+    elif (err_type == COMMS_REPORT_MOTOR_ERR):
+        email_body = "MOTOR ERR"
+        email_subject = "MOTOR_ERR"
+    elif (err_type == COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR):
+        email_body = "SAMPLE WATER NOT DETECTED ERR"
+        email_subject = "ESTOP_ERR"
+    elif (err_type == COMMS_REPORT_TUBE_ERR):
+        email_body = "TUBE TIMEOUT ERR"
+        email_subject = "TUBE TIMEOUT ERR"
+    else:
+        email_body = "UNKNOWN ERR"
+        email_subject = "UNKNOWN ERR"
+    
+    email_errs.send_email(email_subject, email_body)
 
 def get_pacific_unix_epoch():
     """
@@ -301,5 +329,7 @@ if __name__ == "__main__":
 
         elif write_to == EPOCH_TIME_QUERY_TYPE:
             sendEpochTime(ser)
+        elif (len(write_to) == 2 and write_to[0] == 'E'):
+            reportErr(write_to)
         else:
            print(f"ERR: RECEIVED UNKNOWN COMMAND {write_to}")

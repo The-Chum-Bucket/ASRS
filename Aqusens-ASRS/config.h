@@ -13,6 +13,11 @@
 #define REQUEST_TIME      "C" // Requests the current time in unix-epoch form
 #define REQUEST_TIDE_DATA "T" // Requests current tide level from NOAA API
 
+#define COMMS_REPORT_MOTOR_ERR                      "EM"  // Report motor alarm error
+#define COMMS_REPORT_TUBE_ERR                       "ET"  // Report tube retrieval error
+#define COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR  "EW"  // Report sample water not detected error
+#define COMMS_REPORT_ESTOP_PRESSED                  "EE"  // Report that the e-stop has been pressed
+
 /************************* Default Timings *************************/
 #define DEFAULT_SAMPLE_INTERVAL_HOUR 8
 #define DEFAULT_SAMPLE_INTERVAL_MIN  0
@@ -64,9 +69,11 @@
 #define DRAIN_LIFT_SPEED_CM_S       (2.0f)
 #define DRAIN_HOME_SPEED_CM_S       (-2.0f)
 
-#define MANUAL_CONTROL_MOTOR_SPEED (15.0f)
+#define MANUAL_CONTROL_MOTOR_SPEED  (15.0f)
 
-/************************* Tube FFush Timings & Thresholds (tube_flush.ino) *************************/
+#define SECOND_ATTEMPT_DROP_DIST_INCREASE_CM 100
+
+/************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
 #define LIFT_TUBE_TIME_S              (5.0f)
 #define AIR_BUBBLE_TIME_S             (90.0f)
@@ -91,6 +98,10 @@
 
 #define LINE_FLUSH_DROP_DIST_CM (30.0f)
 #define HOME_TUBE_SPD_CM_S      (2.0f)
+
+/************************* Water Detection (utils.ino) ******************/
+#define WATER_DETECTION_TIMEOUT_MS                10 * 1000
+#define MINIMUM_TEMP_DELTA_FOR_WATER_DETECTION_C (2.0f)
 
 /************************* SD Storage (sd.ino) *************************/
 #define PIER_DEFAULT_DIST_CM    (762.0f)
@@ -130,8 +141,9 @@
 
 /************************* Temperature Sensors *************************/
 typedef enum TempSensor {
-  SAMPLE_TEMP_SENSOR        = 1, //TODO: MAKE SURE THESE 
-  FLUSHWATER_TEMP_SENSOR    = 2  // ARE CORRECTLY CORRESPONDING TO THE RIGHT TEMP SENSORS
+  SAMPLE_TEMP_SENSOR            = 1,
+  FLUSHWATER_TEMP_SENSOR        = 2,
+  NORA_INTERNAL_AIR_TEMP_SENSOR = 3
 } TempSensor;
 
 /************************* State and Fault Enums *************************/
@@ -165,7 +177,8 @@ typedef enum AlarmFault {
   MOTOR,
   TUBE,
   ESTOP,
-  TOPSIDE_COMP_COMMS
+  TOPSIDE_COMP_COMMS,
+  SAMPLE_WATER_NOT_DETECTED
 } AlarmFault;
 
 // Stages for the flushing procedure

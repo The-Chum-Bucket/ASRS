@@ -663,6 +663,33 @@ float readRTD(TempSensor sensor_num) {
 }
 
 /**
+ * @brief uses NORA's internal air temperature RTD and the sample 
+ *        temperature RTD to detect the presence of water in the sample tube based on 
+ *        the delta between the two RTDs' measured temperatures
+ * 
+ * @return true if water is detected in the tube, false if water is not detected
+ */
+
+bool detectWater() {
+  float air_temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+  float sample_temp = readRTD(SAMPLE_TEMP_SENSOR);
+  
+  uint32_t start_time = millis();
+
+  while (millis() - start_time < WATER_DETECTION_TIMEOUT_MS) {
+    if (abs(air_temp - sample_temp) > MINIMUM_TEMP_DELTA_FOR_WATER_DETECTION_C) {
+      return true;
+    }
+    delay(50);
+    air_temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+    sample_temp = readRTD(SAMPLE_TEMP_SENSOR);
+  }
+
+  return false;
+ }
+
+
+/**
  * @brief provides the ability to send a value over serial
  * 
  * @param string_to_send the string to send over serial
@@ -701,7 +728,8 @@ bool pumpControl(String pump_action, unsigned long end_time, FlushStage curr_sta
 
 
 /**
- * @brief sets the alarm fault type and sends ASRS into alarm state
+ * @brief Sets the alarm fault type and sends ASRS into alarm state. Reports motor, tube, and 
+ *        sample water not detected errrors to the topside computer
  * 
  * @param fault_type the type of fault (E-stop, communication timeout, motor alarm, etc.)
  */
@@ -710,6 +738,27 @@ void setAlarmFault(AlarmFault fault_type) {
     return;
   state = ALARM;
   fault = fault_type;
+
+/*
+ * Based on the type of error, report some to the python script. No need to report
+ * the estop being pressed (probably?), and cannot report a comms error if the comms are down...
+ */
+  switch (fault_type) {  
+    case MOTOR:
+      sendToPython(COMMS_REPORT_MOTOR_ERR);
+      break;
+    case TUBE:
+      sendToPython(COMMS_REPORT_TUBE_ERR);
+      break;
+    case SAMPLE_WATER_NOT_DETECTED:
+      sendToPython(COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR);
+      break;
+    case COMMS_REPORT_ESTOP_PRESSED:
+      sendToPython(COMMS_REPORT_ESTOP_PRESSED);
+      break;
+    default:
+      break;
+  }
 }
 
 

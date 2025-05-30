@@ -39,8 +39,8 @@ void calibrateLoop() {
  *    - Run Sample: proceeds to "Are you sure?" screen for manually running sample
  * Checks for E-Stop press
  */
-void standbyLoop()
-{ 
+void standbyLoop() { 
+  is_second_retrieval_attempt = false;
   static char key;
   static uint8_t key_pressed;
   lcd.clear();
@@ -78,11 +78,20 @@ void ensureSampleStartLoop() {
   char key_pressed;
   resetLCD();
   cursor_y = 3;
+  uint32_t last_key_press_time = millis();
 
   while (state == ENSURE_SAMPLE_START) {
     ensureLCD("RUN SAMPLE");
 
     key_pressed = cursorSelect(2, 3);
+    
+    if (key_pressed != NULL) {
+      last_key_press_time = millis();
+    }
+
+    if (last_key_press_time + 30*1000 < millis()) { //time out after 30 seconds, return to standby
+      state = STANDBY;
+    }
 
     if (key_pressed == 'S') {
       if (cursor_y == 2) {
@@ -102,9 +111,13 @@ void ensureSampleStartLoop() {
  * Checks for E-Stop press
  */
 void releaseLoop() {
-  // drop_distance_cm = getDropDistance();
+  drop_distance_cm = getDropDistance();
 
-  drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+  if (is_second_retrieval_attempt) { //If this is the second try at retrieving a sample, increase drop dist by a meter
+    drop_distance_cm += SECOND_ATTEMPT_DROP_DIST_INCREASE_CM;
+  }
+
+  //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
 
   // actually drop the tube
@@ -192,8 +205,22 @@ void recoverLoop() {
       continue;
     
 
-    if (retrieveTube(0)) { //Return to 0 distance, or the "home" state
-      state = SAMPLE;
+    if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
+      
+      if (detectWater()) {
+        is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
+        state = SAMPLE;
+      }
+      
+      else if (!is_second_retrieval_attempt) { //If this is the first try to sample, then send the system back to the release state to try a second time
+        is_second_retrieval_attempt = true;
+        state = RELEASE;
+      }
+
+      else if (is_second_retrieval_attempt) { //If this is the second try and we still have not detected water, then alarm
+        is_second_retrieval_attempt = false;
+        setAlarmFault(SAMPLE_WATER_NOT_DETECTED);
+      }
     }
   }
 }
@@ -201,7 +228,7 @@ void recoverLoop() {
 /**
  * @brief SAMPLE
  * 
- * No selection options
+ * No selection options //TODO: CHECK ESTOP IN HERE!!!!
  */
 void sampleLoop() {
   pumpControl(START_PUMP, 0, NULL_STAGE);
@@ -227,6 +254,7 @@ void sampleLoop() {
 
   while (state == SAMPLE) 
   {
+    checkEstop();
     if (last_lcd_update == 0 || curr_time - last_lcd_update > 1000) {
       sampleLCD(end_time);
       last_lcd_update = curr_time;
@@ -253,7 +281,7 @@ void sampleLoop() {
 
        // only transition to flushing after Aqusens sample done
        else {
-         if (data == "D") { 
+         if (data == "D" && state != ALARM) { 
            sendToPython("F"); 
            state = FLUSH_SYSTEM;
          }
@@ -347,7 +375,15 @@ void flushSystemLoop() {
       case FRESHWATER_LINE_FLUSH:
         if (stagesStarted[FRESHWATER_LINE_FLUSH] == false) {
           //Serial.println("STARTING FRESHWATER LINE FLUSH");
-          dropTube(LINE_FLUSH_DROP_DIST_CM); //Drop down for line flush
+          if (is_second_retrieval_attempt) { 
+            // If this is the second try, drop the tube lower to flush 
+            // the additional line that potentially hit the water
+            dropTube(LINE_FLUSH_DROP_DIST_CM + SECOND_ATTEMPT_DROP_DIST_INCREASE_CM);
+          }
+
+          else {
+            dropTube(LINE_FLUSH_DROP_DIST_CM); //Drop down for line flush
+          }
           updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
           homeTube(end_time, curr_stage);
           stagesStarted[FRESHWATER_LINE_FLUSH] = true;

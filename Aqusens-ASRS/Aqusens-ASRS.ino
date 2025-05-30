@@ -1,12 +1,12 @@
-//  -Aqusens-ASRS
-//  -Aqusens - Automated Sample Retrieval System V2.0
+//  -Aqusens - NORA
+//  -Aqusens - Nearshore Ocean Retrieval Apparatus v2.0
 //  -Date of Last Revision: 2/26/25
 //  -Califonia Polytechnic State University
 //  -Bailey College of Science and Mathamatics Biology Department
 //  -Primary Owner: Alexis Pasulka
 //  -Design Engineers: Doug Brewster and Rob Brewster
 //  -Contributors: Jack Anderson, Emma Lucke, Deeba Khosravi, Jorge Ramirez, Danny Gutierrez
-//  -Microcontroller: P1AM-100 ProOpen 
+//  -Microcontroller: P1AM-100 by ProOpen 
 //  -Arduino IDE version:2.3.6
 //  -See User Manual For Project Description
 //  -non-stock libraries needed: (add library reference here)
@@ -50,6 +50,9 @@ volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/rel
 
 // RTC
 RTCZero rtc;
+
+// Bool for keeping track of second attempts at retrieving a sample
+bool is_second_retrieval_attempt = false;
 
 // Solenoids
 typedef enum SolenoidState {
