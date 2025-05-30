@@ -1,2 +1,4 @@
 Aqusens-ASRS/ArduinoOutput/*
 .env
+venv/*
+venv.sh
