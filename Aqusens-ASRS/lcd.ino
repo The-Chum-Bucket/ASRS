@@ -321,11 +321,11 @@ void flushLCD(String min_time, String sec_time, bool temp_flag, FlushStage curr_
         break;
       case FRESHWATER_LINE_FLUSH:
         lcd.setCursor(2,1);
-        lcd.print("FLUSHING LINE");
+        lcd.print("SPRAYING LINE");
         break;
       case FRESHWATER_DEVICE_FLUSH:
         lcd.setCursor(1,1);
-        lcd.print("FLUSHING DEVICE");
+        lcd.print("RINSING SAMPLER");
         break;
       case AIR_FLUSH:
         lcd.setCursor(5,1);
@@ -343,9 +343,10 @@ void flushLCD(String min_time, String sec_time, bool temp_flag, FlushStage curr_
 
   lcd.setCursor(1,0);
   lcd.print("FLUSHING SYSTEM");
+  printDots(sec_time.toInt());
 
   lcd.setCursor(5, 2);
-  lcd.print("TEMP: ");
+  lcd.print("FLUSH TEMP:");
   
   if (temp_flag) {
     lcd.print(String(readRTD(FLUSHWATER_TEMP_SENSOR), 1));

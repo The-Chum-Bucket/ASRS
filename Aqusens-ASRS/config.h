@@ -58,13 +58,14 @@
 #define DROP_SPEED_CM_SEC           (75.0f)
 #define RAISE_SPEED_CM_SEC          (50.0f)
 #define SAFE_RISE_SPEED_CM_SEC      (3.0f)
+#define TUBE_DROP_OVERSHOOT         (0)
 
 #define ALIGNMENT_TUBE_OPENING_DIST (208 + 20) // 208cm long "alignment tube", plus 20cm of buffer
 #define NEARING_HOME_DIST           (30) // slow down to a crawl at 15 cm from the magnet
 
 #define MOTOR_STEP_DELAY_MS         (50)
 
-#define TUBE_TIMEOUT_ERR_TIME_MS    (45 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
+#define TUBE_TIMEOUT_ERR_TIME_MS    (120 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
 
 #define DRAIN_LIFT_SPEED_CM_S       (2.0f)
 #define DRAIN_HOME_SPEED_CM_S       (-2.0f)
@@ -81,7 +82,7 @@
 #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
 #define FRESHWATER_TO_DEVICE_TIME_S   (35.0f)
 #define FRESHWATER_FLUSH_TIME_S       (150.0f)
-#define FINAL_AIR_FLUSH_TIME_S        (45.0f)
+#define FINAL_AIR_FLUSH_TIME_S        (150.0f)
 #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 #define DEVICE_FLUSH_WATER_TEMP_MAX_C (27.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
@@ -97,7 +98,7 @@
 // #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
 #define LINE_FLUSH_DROP_DIST_CM (30.0f)
-#define HOME_TUBE_SPD_CM_S      (2.0f)
+#define HOME_TUBE_SPD_CM_S      (3.0f)
 
 /************************* Water Detection (utils.ino) ******************/
 #define WATER_DETECTION_TIMEOUT_MS                10 * 1000
@@ -191,6 +192,16 @@ typedef enum FlushStage {
   AIR_FLUSH                 =  4,
   HOME_TUBE                 =  5
 } FlushStage;
+
+
+enum RetrieveStage {
+  INITIAL_SLOW_RISE,
+  NORMAL_RISE,
+  STOP_AND_WAIT,
+  SLOW_RISE_TO_NEAR_HOME,
+  FINAL_SLOW_ALIGN,
+  RETRIEVAL_COMPLETE
+};
 
 typedef enum MotorDir {
   CCW, //Lowering

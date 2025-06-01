@@ -24,6 +24,7 @@
 #include <ArduinoJson.h>
 #include "config.h" // Config file, change global defines here (reel radius, flush timing, etc.)
 
+//volatile StateEnum state = SAMPLE; //Global vars for tracking device state...
 volatile StateEnum state = CALIBRATE; //Global vars for tracking device state...
 volatile AlarmFault fault = NONE;   // and for tracking Alarm reason
 

@@ -67,7 +67,5 @@ void updateFlushTimer(unsigned long end_time, FlushStage curr_stage) {
       else {
         flushLCD("00", "00", temp_flag, curr_stage); //If exceeded the estimated flush time, then just print zeroes
       }
-
-      printDots(seconds_remaining);
   }
 }

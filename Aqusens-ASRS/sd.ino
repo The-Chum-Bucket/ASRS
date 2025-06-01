@@ -167,7 +167,7 @@ float getDropDistance(){
         Serial.read();  // Discard extra data
     }
 
-    return PIER_DEFAULT_DIST_CM - drop_distance_cm + 60.0f;
+    return PIER_DEFAULT_DIST_CM - drop_distance_cm + TUBE_DROP_OVERSHOOT;
 }
 
 /**

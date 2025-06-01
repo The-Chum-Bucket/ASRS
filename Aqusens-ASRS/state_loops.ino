@@ -26,8 +26,8 @@ void calibrateLoop() {
   // unliftTube();
 
   if (state != ALARM) {
-    state = FLUSH_SYSTEM;
-    //state = STANDBY; Leaving for debug purposes, hard to test when system instantly flushes lol
+    //state = FLUSH_SYSTEM;
+    state = STANDBY; //Leaving for debug purposes, hard to test when system instantly flushes lol
   }
 }
 
@@ -206,7 +206,7 @@ void recoverLoop() {
     
 
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
-      
+      //Serial.println("DONE!!");
       if (detectWater()) {
         is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
         state = SAMPLE;
@@ -307,9 +307,13 @@ void sampleLoop() {
 
 void flushSystemLoop() {
   resetLCD();
+
+  int line_flush_time_s =  (LINE_FLUSH_DROP_DIST_CM * (1/HOME_TUBE_SPD_CM_S)) 
+                       + (HOME_TUBE_SPD_CM_S * 1/DROP_SPEED_CM_SEC);
+
   int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
                                     AIR_BUBBLE_TIME_S + 
-                                    FLUSH_LINE_TIME_S +
+                                    line_flush_time_s +
                                     FRESHWATER_TO_DEVICE_TIME_S + 
                                     FRESHWATER_FLUSH_TIME_S +
                                     FINAL_AIR_FLUSH_TIME_S + 
@@ -595,9 +599,11 @@ void dryLoop() {
 
       key_pressed = getKeyTimeBasedDebounce();
 
+
       if (key_pressed == 'L') {
         state = MANUAL;
       }
+
 
       else if (key_pressed == 'S') {
         resetMotor();
@@ -616,7 +622,10 @@ void dryLoop() {
       }
 
       else if (key_pressed == 'U') {
-        while (!magSensorRead() && pressAndHold('U') == 'U') {
+        if (magSensorRead()) {
+          turnMotorOff();
+        }
+        while (pressAndHold('U') == 'U') {
           if (magSensorRead()) 
             turnMotorOff();
           else

@@ -297,8 +297,11 @@ if __name__ == "__main__":
             print("[ASRS TERMINAL] > ", end="", flush=True)
 
         write_to = ser.readline().decode().strip() if ser.in_waiting else None
+        
         if not write_to:
             continue
+        
+        //print("GOT: " + write_to)
 
         if write_to == TIDE_LEVEL_QUERY_TYPE:
             tide_level = queryForWaterLevel()

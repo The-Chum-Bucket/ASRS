@@ -753,7 +753,7 @@ void setAlarmFault(AlarmFault fault_type) {
     case SAMPLE_WATER_NOT_DETECTED:
       sendToPython(COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR);
       break;
-    case COMMS_REPORT_ESTOP_PRESSED:
+    case ESTOP:
       sendToPython(COMMS_REPORT_ESTOP_PRESSED);
       break;
     default:
