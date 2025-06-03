@@ -7,6 +7,7 @@
  */
 void calibrateLoop() {
   resetMotor();
+  rtcInit();
   resetLCD();
 
   updateSolenoid(CLOSED, SOLENOID_ONE);
@@ -119,6 +120,13 @@ void releaseLoop() {
 
   //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
+  Serial.print("DROP DIST CM");
+  Serial.println(drop_distance_cm);
+
+  liftupTube();
+  delay(3000);
+  unliftTube();
+
 
   // actually drop the tube
   while (state == RELEASE){
@@ -200,6 +208,7 @@ void recoverLoop() {
   resetLCD();
 
   while (state == RECOVER) {
+    // sendTempOverSerial();
     // checkEstop();
     if (checkMotor() || checkEstop()) //If motor is alarming or estop is pressed, continue to next iter
       continue;
@@ -207,20 +216,22 @@ void recoverLoop() {
 
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
       //Serial.println("DONE!!");
-      if (detectWater()) {
-        is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
-        state = SAMPLE;
-      }
+      // if (detectWater()) {
+      //   is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
+      //   state = SAMPLE;
+      // }
       
-      else if (!is_second_retrieval_attempt) { //If this is the first try to sample, then send the system back to the release state to try a second time
-        is_second_retrieval_attempt = true;
-        state = RELEASE;
-      }
+      // else if (!is_second_retrieval_attempt) { //If this is the first try to sample, then send the system back to the release state to try a second time
+      //   is_second_retrieval_attempt = true;
+      //   state = RELEASE;
+      // }
 
-      else if (is_second_retrieval_attempt) { //If this is the second try and we still have not detected water, then alarm
-        is_second_retrieval_attempt = false;
-        setAlarmFault(SAMPLE_WATER_NOT_DETECTED);
-      }
+      // else if (is_second_retrieval_attempt) { //If this is the second try and we still have not detected water, then alarm
+      //   is_second_retrieval_attempt = false;
+      //   setAlarmFault(SAMPLE_WATER_NOT_DETECTED);
+      // }
+
+      state = SAMPLE;
     }
   }
 }
@@ -254,6 +265,7 @@ void sampleLoop() {
 
   while (state == SAMPLE) 
   {
+    // sendTempOverSerial();
     checkEstop();
     if (last_lcd_update == 0 || curr_time - last_lcd_update > 1000) {
       sampleLCD(end_time);
@@ -340,12 +352,6 @@ void flushSystemLoop() {
     if (checkEstop()) {
       closeAllSolenoids();
       pumpControl(STOP_PUMP, end_time, curr_stage);
-    }
-
-
-    
-    if (checkMotor()) { //If motor is alarming, continue to break out of while loop (state will be changed by call)
-      continue;
     }
 
     switch(curr_stage) {

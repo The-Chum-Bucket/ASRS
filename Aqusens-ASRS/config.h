@@ -31,7 +31,7 @@
 
 // #define SAMPLE_TIME_SEC              60*6 //Sample for 6 minutes
 #define SAMPLE_TIME_SEC 3 * 60
-#define PRE_SAMPLE_LOAD_TIME_MS 45 * 1000
+#define PRE_SAMPLE_LOAD_TIME_MS 100 * 1000 
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
@@ -45,7 +45,7 @@
 #define SYSTEM_CLOCK_FREQ       (48000000)
 #define PRESCALER_VAL           (8)
 
-#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
+#define ALARM_THRESHOLD_VALUE   (1010) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
 
 /************************* Debounce Timings (utils.ino) *************************/
 #define TIME_BASED_DEBOUNCE_WAIT_TIME_MS (35)
@@ -58,14 +58,14 @@
 #define DROP_SPEED_CM_SEC           (75.0f)
 #define RAISE_SPEED_CM_SEC          (50.0f)
 #define SAFE_RISE_SPEED_CM_SEC      (3.0f)
-#define TUBE_DROP_OVERSHOOT         (0)
+#define TUBE_DROP_OVERSHOOT         (30)
 
 #define ALIGNMENT_TUBE_OPENING_DIST (208 + 20) // 208cm long "alignment tube", plus 20cm of buffer
 #define NEARING_HOME_DIST           (30) // slow down to a crawl at 15 cm from the magnet
 
 #define MOTOR_STEP_DELAY_MS         (50)
 
-#define TUBE_TIMEOUT_ERR_TIME_MS    (120 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
+#define TUBE_TIMEOUT_ERR_TIME_MS    (200 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
 
 #define DRAIN_LIFT_SPEED_CM_S       (2.0f)
 #define DRAIN_HOME_SPEED_CM_S       (-2.0f)

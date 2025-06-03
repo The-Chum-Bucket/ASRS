@@ -73,7 +73,7 @@ void rtcInit() {
  * 
  */
 void rtdInit() {
-  const char P1_04RTD_CONFIG[] = { 0x40, 0x01, 0x60, 0x03, 0x20, 0x01, 0x80, 0x00 }; //Enable slots 1 and 2, Pt100, Celcius, High Side Burnout
+  const char P1_04RTD_CONFIG[] = { 0x40, 0x02, 0x60, 0x03, 0x20, 0x01, 0x80, 0x00 }; //Enable slots 1 and 2, Pt100, Celcius, High Side Burnout
   // Config data for RTD module, configures Pt1000 type sensor and Celcius units returned when read
   P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT);
   // Serial.println(P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT));  //sends the config data to the module in slot 1
@@ -696,6 +696,10 @@ bool detectWater() {
  * 
  */
 void sendToPython(String string_to_send) {
+    while (Serial.available()) {
+      Serial.read();
+    }
+
     Serial.println(string_to_send);
  }
 
@@ -792,15 +796,15 @@ void setAlarmFault(AlarmFault fault_type) {
       }
     }
 
-    if (curr_time - last_request_time > 1000) { // Reask for time every 1 second
-      sendToPython(REQUEST_TIME);
-      last_request_time = curr_time;
-    }
+    // if (curr_time - last_request_time > 5000) { // Reask for time every 1 second
+    //   sendToPython(REQUEST_TIME);
+    //   last_request_time = curr_time;
+    // }
 
     curr_time = millis(); 
   }
 
-  setAlarmFault(TOPSIDE_COMP_COMMS);
+  //setAlarmFault(TOPSIDE_COMP_COMMS);
 
   // Timeout, return 0 or some error value
   return 0;

@@ -66,6 +66,9 @@ bool dropTube(unsigned int distance_cm) {
   char pos[6];
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
+  motor_pulses = 0;
+  Serial.println("FINAL STEP COUNT!");
+  Serial.println(final_step_count);
   int curr_speed = 0;
 
   if (checkEstop() || checkMotor()) {
@@ -96,7 +99,7 @@ bool dropTube(unsigned int distance_cm) {
     curr_time = millis();
 
     if (PULSES_TO_DISTANCE(motor_pulses) > (distance_cm - 100)) {
-      rampDownMotor(curr_speed, -SAFE_RISE_SPEED_CM_SEC);
+      rampDownMotor(curr_speed, -10.0f);
       //Serial.println("slow TIME");
     }
     
@@ -220,6 +223,7 @@ bool retrieveTube(float distance_cm) {
 
   while (stage != RETRIEVAL_COMPLETE && motor_pulses >= final_step_count) {
     curr_time = millis();
+    // sendTempOverSerial();
 
     if (checkEstop() || checkMotor()) {
       return false;
@@ -236,14 +240,15 @@ bool retrieveTube(float distance_cm) {
     switch (stage) {
       case INITIAL_SLOW_RISE:
         // Continue slow rise for 5 seconds
-        if (curr_time - stage_start_time >= 5000) {
-          rampUpMotor(curr_speed, SAFE_RISE_SPEED_CM_SEC);  // Increase speed
+        if (curr_time - stage_start_time >= 15000) {
+          rampUpMotor(curr_speed, 10.0f);  // Increase speed
           stage = NORMAL_RISE;
           stage_start_time = curr_time;
         }
         break;
 
       case NORMAL_RISE:
+        rampUpMotor(curr_speed, RAISE_SPEED_CM_SEC);
         if (curr_dist <= ALIGNMENT_TUBE_OPENING_DIST) {
           rampDownMotor(curr_speed, 0);  // Stop motor
           delay(5000);  // Let tube settle
@@ -254,7 +259,7 @@ bool retrieveTube(float distance_cm) {
 
       case SLOW_RISE_TO_NEAR_HOME:
         if (curr_dist >= NEARING_HOME_DIST) {
-          rampUpMotor(curr_speed, SAFE_RISE_SPEED_CM_SEC);  // Resume controlled rise
+          rampUpMotor(curr_speed, 10.0f);  // Resume controlled rise
         } else {
           stage = FINAL_SLOW_ALIGN;
           stage_start_time = curr_time;
@@ -262,7 +267,7 @@ bool retrieveTube(float distance_cm) {
         break;
 
       case FINAL_SLOW_ALIGN:
-        rampDownMotor(curr_speed, SAFE_RISE_SPEED_CM_SEC);  // Final gentle alignment
+        rampDownMotor(curr_speed, 3.0f);  // Final gentle alignment
         if (magSensorRead()) {
           turnMotorOff();
           stage = RETRIEVAL_COMPLETE;

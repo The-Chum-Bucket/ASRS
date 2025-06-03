@@ -184,6 +184,16 @@ void recoverLCD(String position) {
   lcd.print("CURR POSITION:");
   lcd.setCursor(15,2);
   lcd.print(position);
+
+  float rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
+
+  lcd.setCursor(10, 3);
+  lcd.print("RTD1:");
+  
+  if (rtd1 < 10) {
+    lcd.print(" ");
+  }
+  lcd.print(String(rtd1, 1));
 }
 
 /**
@@ -218,6 +228,7 @@ void sampleLCD(unsigned long end_time) {
  */
 
 void preSampleLCD() {
+  resetLCD();
 
 
   lcd.setCursor(2, 0);
@@ -429,10 +440,11 @@ void solenoidControlLCD() {
   if (currentTime - lastUpdateTime >= 1000) {
     lastUpdateTime = currentTime;
 
-    float rtd1, rtd2;
+    float rtd1, rtd2, rtd3;
 
     rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
     rtd2 = readRTD(FLUSHWATER_TEMP_SENSOR);
+    rtd3 = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
 
     lcd.setCursor(10, 1);
     lcd.print("RTD1:");
@@ -449,9 +461,15 @@ void solenoidControlLCD() {
     
     if (rtd2 < 10) 
       lcd.print(" ");
-    
-    
     lcd.print(String(rtd2, 1));
+
+    lcd.setCursor(10, 3);
+    lcd.print("RTD3:");
+    
+    if (rtd3 < 10) 
+      lcd.print(" ");
+    lcd.print(String(rtd3, 1));
+    
     lcd.setCursor(19, 2);
     lcd.print("C");
   }
@@ -461,6 +479,21 @@ void solenoidControlLCD() {
   lcd.print("<EXIT");
 }
 
+
+void sendTempOverSerial() {
+  float rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
+  float rtd2 = readRTD(FLUSHWATER_TEMP_SENSOR);
+  float rtd3 = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+  Serial.println("RTD1: ");
+  Serial.print(rtd1,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+  Serial.println("RTD2: ");
+  Serial.print(rtd2,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+  Serial.println("RTD3: ");
+  Serial.print(rtd3,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+}
 /**
  * @brief Initialize SET_CLOCK screen
  * 

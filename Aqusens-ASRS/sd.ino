@@ -139,6 +139,7 @@ float getDropDistance(){
         if (Serial.available()) {
             String data = Serial.readStringUntil('\n'); // Read full line
             drop_distance_cm = data.toFloat();  // Convert to float
+            Serial.println(drop_distance_cm);
             break;
         }
         

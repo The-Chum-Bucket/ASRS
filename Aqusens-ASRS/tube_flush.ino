@@ -61,7 +61,12 @@ void updateFlushTimer(unsigned long end_time, FlushStage curr_stage) {
       if (!reached_zero && minutes_remaining == 0 && seconds_remaining == 0) {
         reached_zero = true; //Prevents LCD from underflowing, just stays at zero
       }
+
+      if (curr_stage == DUMP_SAMPLE || curr_stage == AIR_BUBBLE){
+        reached_zero = false;
+      }
       
+
       if (!reached_zero)
         flushLCD(min_time, sec_time, temp_flag, curr_stage);
       else {
