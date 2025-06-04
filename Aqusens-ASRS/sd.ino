@@ -153,8 +153,8 @@ float getDropDistance(){
       setAlarmFault(TOPSIDE_COMP_COMMS);
     }
 
-    // if drop distance is -1000 then get SD card info
-    if (drop_distance_cm == -1000) {
+    // if drop distance is -1000, or less than -100 then get SD card info
+    if (drop_distance_cm < -100) {
         
         drop_distance_cm = getTideData();
     }

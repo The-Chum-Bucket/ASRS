@@ -12,8 +12,8 @@
 
  void homeTube() {
   
-  setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
-  delay(1000);
+  // setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
+  // delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead() && state != ALARM){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
