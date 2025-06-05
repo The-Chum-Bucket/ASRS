@@ -377,6 +377,10 @@ COMMS_REPORT_MOTOR_ERR                     = "EM"
 COMMS_REPORT_TUBE_ERR                      = "ET"  
 COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR = "EW"  
 COMMS_REPORT_ESTOP_PRESSED                 = "EE"
+AQUSENS_NACK_RECEIVED                      = "EA"
+AQUSENS_ACK_TIMEOUT                        = "EF"
+
+AQUSENS_ACK_TIMEOUT_SEC                    = 10
 
 CLI_DEBUG_MODE = False
 
@@ -571,7 +575,7 @@ def detect_serial_port():
                 return ports[0]
     raise RuntimeError("No valid serial port found for your OS.")
 
-def reportErr(err_type):
+def reportErr(err_type, last_aqusens_command=None):
     email_subject = ""
     email_body    = ""
     if (err_type == COMMS_REPORT_ESTOP_PRESSED):
@@ -586,6 +590,15 @@ def reportErr(err_type):
     elif (err_type == COMMS_REPORT_TUBE_ERR):
         email_body = "TUBE TIMEOUT ERR"
         email_subject = "TUBE TIMEOUT ERR"
+    elif (err_type == AQUSENS_NACK_RECEIVED):
+        email_body = "AQUSENS NACK RECEIVED"
+        if email_subject is not None:
+            email_subject = f"AQUSENS NACK RECEIVED: {last_aqusens_command}"
+        else:
+            email_subject = "AQUSENS NACK RECEIVED FOR UNKNOWN COMMAND" #Should never trigger but for safety
+    elif (err_type == AQUSENS_ACK_TIMEOUT):
+        email_body = "AQUSENS ACK TIMEOUT"
+        email_subject = "AQUSENS ACK TIMEOUT"
     else:
         email_body = "UNKNOWN ERR"
         email_subject = "UNKNOWN ERR"
@@ -654,6 +667,8 @@ def queryForWaterLevel():
         return -1000
 
 def wait_for_file_response(expected_prefix, expected_content, min_length):
+    start_time = time.time()  # Record the start time
+    
     with open(READ_FILE, "r") as input:
         while True:
             input.seek(0)
@@ -661,6 +676,15 @@ def wait_for_file_response(expected_prefix, expected_content, min_length):
             if len(recv) >= min_length:
                 if recv[0] == expected_prefix and recv[1:1+len(expected_content)].lower() == expected_content:
                     return True
+                else:
+                    reportErr(AQUSENS_NACK_RECEIVED, recv)
+                    return False
+
+            # Check if timeout has been exceeded
+            if time.time() - start_time > AQUSENS_ACK_TIMEOUT_SEC:
+                reportErr(AQUSENS_ACK_TIMEOUT)
+                return False  # Timeout has occurred
+
             time.sleep(0.1)
 
 def write_command(command):
