@@ -449,9 +449,10 @@ def handleTerminalInput(ser, terminalCommand):
 
     match terminalCommand[0]:
         case "status":
-            safe_serial_write(ser, "Q1\n")
+            safe_serial_write(ser, "Q0\n")
             time.sleep(0.05)
             replyString = safe_serial_readline(ser)
+            print("got", replyString)
             match = re.match(r"([01])H(\d+)M(\d+)", replyString)
             if match:
                 isSampling = match.group(1) == '1'
@@ -462,6 +463,7 @@ def handleTerminalInput(ser, terminalCommand):
                 hour_str = " hour" if hours == 1 else " hours"
                 minute_str = " minute" if mins == 1 else " minutes"
                 print(f"NORA has interval sampling {status_string}, sampling every {hours}{hour_str} and {minutes}{minute_str}.\n")
+            
 
         case "set-interval":
             if len(terminalCommand) != 3:
@@ -474,11 +476,15 @@ def handleTerminalInput(ser, terminalCommand):
                 safe_serial_write(ser, sendString)
                 time.sleep(0.05)
                 reply = safe_serial_readline(ser)
-                if (reply[0] == 'S' and reply[1] == '0'):
-                    print("WARNING: NORA is not currently interval sampling!\n")
-                elif (reply[0] == '1'):
-                    print(f"ERR: Recv err ack -> {reply}, retry command")
+                
+                if (len(reply) > 0)
+                    if (reply[0] == 'S' and reply[1] == '0'):
+                        print("WARNING: NORA is not currently interval sampling!\n")
+                    elif (reply[0] == '1'):
+                        print(f"ERR: Recv err ack -> {reply}, retry command")
+
                 # hour_str = "hour" if hours == 1 else "hours"
+
                 # minute_str = "minute" if minutes == 1 else "minutes"
                 
                 # print(f"Setting sampling interval to {hours} {hour_str} and {minutes} {minute_str}...")
@@ -564,7 +570,7 @@ def detect_serial_port():
     if system == "Windows":
         return "COM3"
     elif system == "Linux":
-        for pattern in ["/dev/tty0", "/dev/ttyACM*"]:
+        for pattern in ["/dev/ttyACM*"]:
             ports = glob.glob(pattern)
             if ports:
                 return ports[0]
