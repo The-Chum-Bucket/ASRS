@@ -2,3 +2,5 @@ requests
 pyserial
 pytz
 python-dotenv
+msal
+requests
