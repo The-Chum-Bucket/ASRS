@@ -50,6 +50,7 @@ void standbyLoop() {
   while (state == STANDBY) 
   {
     checkEstop();
+    checkForSerial();
 
     standbyLCD();
 
@@ -83,6 +84,7 @@ void ensureSampleStartLoop() {
 
   while (state == ENSURE_SAMPLE_START) {
     ensureLCD("RUN SAMPLE");
+    checkForSerial();
 
     key_pressed = cursorSelect(2, 3);
     
@@ -133,7 +135,7 @@ void releaseLoop() {
     if (checkMotor() || checkEstop())
       continue; //Continue to next iteration of the loop, where state will be checked again (and will be ALARM)
 
-    if (dropTube(drop_distance_cm)) {
+    else if (dropTube(drop_distance_cm)) {
       state = SOAK;
     }
   }
@@ -159,6 +161,7 @@ void soakLoop() {
   while (state == SOAK && millis() < end_time) {
     checkEstop();
     checkMotor();
+    checkForSerial();
 
     // Calculate remaining time, accounting for millis() overflow
     uint32_t millis_remaining;
@@ -233,6 +236,9 @@ void recoverLoop() {
 
       state = SAMPLE;
     }
+    else {
+      setAlarmFault(TUBE);
+    }
   }
 }
 
@@ -249,6 +255,7 @@ void sampleLoop() {
   resetLCD();
 
   unsigned long start_time = millis();
+
   unsigned long curr_time = start_time;
   unsigned long last_lcd_update = 0;
   unsigned long end_time = start_time + (1000 * SAMPLE_TIME_SEC);
@@ -282,22 +289,19 @@ void sampleLoop() {
         setAlarmFault(TOPSIDE_COMP_COMMS);
       continue;
     }
-
-     if (Serial.available()) {
-       String data = Serial.readStringUntil('\n'); // Read full line
-
+     String data = checkForSerial();
+     if (data != "") {
+       
        // check if wanting temperature read
-       if (data == "T") {
-         sendToPython(String((int)(readRTD(SAMPLE_TEMP_SENSOR))));
-       }
+       
 
        // only transition to flushing after Aqusens sample done
-       else {
-         if (data == "D" && state != ALARM) { 
+       
+        if (data == "D" && state != ALARM) { 
            sendToPython("F"); 
            state = FLUSH_SYSTEM;
          }
-       }
+       
 
        // Flush any remaining characters
        while (Serial.available()) {

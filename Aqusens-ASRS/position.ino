@@ -20,7 +20,7 @@
     //Update LCD?
     checkEstop();
     checkMotor();
-    
+    checkForSerial();
   }
 
   motor_pulses = 0;
@@ -90,6 +90,8 @@ bool dropTube(unsigned int distance_cm) {
       return false;
     }
 
+    checkForSerial();
+
     if (state == RELEASE && curr_time - last_lcd_update > 50) { //Update every 50ms
       snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses)/ 100.0f);
       releaseLCD(pos);
@@ -98,8 +100,8 @@ bool dropTube(unsigned int distance_cm) {
 
     curr_time = millis();
 
-    if (PULSES_TO_DISTANCE(motor_pulses) > (distance_cm - 100)) {
-      rampDownMotor(curr_speed, -10.0f);
+    if (PULSES_TO_DISTANCE(motor_pulses) > (distance_cm - NEAR_WATER_DIST_CM)) {
+      rampDownMotor(curr_speed, -NEAR_WATER_SPEED_CM_SEC);
       //Serial.println("slow TIME");
     }
     
@@ -211,6 +213,10 @@ bool retrieveTube(float distance_cm) {
   unsigned long stage_start_time = start_time;
   static char pos[6];
 
+  if (abs(distance_cm) > 30 * 100) { //If trying to drop more than 30m, something went wrong!
+    return false;
+  }
+
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
   int curr_speed = 0;
 
@@ -224,6 +230,7 @@ bool retrieveTube(float distance_cm) {
   while (stage != RETRIEVAL_COMPLETE && motor_pulses >= final_step_count) {
     curr_time = millis();
     // sendTempOverSerial();
+    checkForSerial();
 
     if (checkEstop() || checkMotor()) {
       return false;
@@ -241,7 +248,7 @@ bool retrieveTube(float distance_cm) {
       case INITIAL_SLOW_RISE:
         // Continue slow rise for 5 seconds
         if (curr_time - stage_start_time >= 15000) {
-          rampUpMotor(curr_speed, 10.0f);  // Increase speed
+          rampUpMotor(curr_speed, NEAR_WATER_SPEED_CM_SEC);  // Increase speed
           stage = NORMAL_RISE;
           stage_start_time = curr_time;
         }
@@ -259,7 +266,7 @@ bool retrieveTube(float distance_cm) {
 
       case SLOW_RISE_TO_NEAR_HOME:
         if (curr_dist >= NEARING_HOME_DIST) {
-          rampUpMotor(curr_speed, 10.0f);  // Resume controlled rise
+          rampUpMotor(curr_speed, IN_TUBE_RAISE_SPEED_CM_SEC);  // Resume controlled rise
         } else {
           stage = FINAL_SLOW_ALIGN;
           stage_start_time = curr_time;
@@ -267,7 +274,7 @@ bool retrieveTube(float distance_cm) {
         break;
 
       case FINAL_SLOW_ALIGN:
-        rampDownMotor(curr_speed, 3.0f);  // Final gentle alignment
+        rampDownMotor(curr_speed, SAFE_RISE_SPEED_CM_SEC);  // Final gentle alignment
         if (magSensorRead()) {
           turnMotorOff();
           stage = RETRIEVAL_COMPLETE;

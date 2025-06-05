@@ -136,9 +136,9 @@ float getDropDistance(){
     unsigned long curr_time = start_time;
     while (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time)
     {
-        if (Serial.available()) {
-            String data = Serial.readStringUntil('\n'); // Read full line
-            drop_distance_cm = data.toFloat();  // Convert to float
+        String data = checkForSerial();
+        if (data != "") {
+            drop_distance_cm = data.substring(1).toFloat();  // Convert to float
             Serial.println(drop_distance_cm);
             break;
         }

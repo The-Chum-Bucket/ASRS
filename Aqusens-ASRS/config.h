@@ -59,18 +59,21 @@
 #define RAISE_SPEED_CM_SEC          (50.0f)
 #define SAFE_RISE_SPEED_CM_SEC      (3.0f)
 #define TUBE_DROP_OVERSHOOT         (30)
+#define NEAR_WATER_SPEED_CM_SEC     (10.0) //Speed for when we near the water on the way up and down when sampling
+#define IN_TUBE_RAISE_SPEED_CM_SEC  (10.0f) //Raise speed once we're in the tube but not year near home
 
+#define NEAR_WATER_DIST_CM          (100.0) //Distance from the water at which we slowly raise/lower the tube
 #define ALIGNMENT_TUBE_OPENING_DIST (208 + 20) // 208cm long "alignment tube", plus 20cm of buffer
 #define NEARING_HOME_DIST           (30) // slow down to a crawl at 15 cm from the magnet
 
 #define MOTOR_STEP_DELAY_MS         (50)
 
-#define TUBE_TIMEOUT_ERR_TIME_MS    (200 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
+#define TUBE_TIMEOUT_ERR_TIME_MS    (200 * 1000) // If we go 200 seconds in the retrieve stage without detecting the sampler, something's gone wrong
 
 #define DRAIN_LIFT_SPEED_CM_S       (2.0f)
 #define DRAIN_HOME_SPEED_CM_S       (-2.0f)
 
-#define MANUAL_CONTROL_MOTOR_SPEED  (15.0f)
+#define MANUAL_CONTROL_MOTOR_SPEED  (20.0f)
 
 #define SECOND_ATTEMPT_DROP_DIST_INCREASE_CM 100
 

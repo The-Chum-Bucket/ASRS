@@ -337,7 +337,8 @@
 #         else:
 #            print(f"ERR: RECEIVED UNKNOWN COMMAND {write_to}")
 
-
+import threading
+import queue
 import serial
 import serial.tools.list_ports
 import glob
@@ -351,8 +352,13 @@ import requests
 import platform
 import calendar
 import pytz
+import re
 from terminalThread import *
 import email_errs
+
+# isSampling = True
+# hours = 8
+# minutes = 0
 
 BAUD_RATE = 115200
 READ_FILE = "response_file.txt"
@@ -393,6 +399,158 @@ class DebugSerial:
     @property
     def in_waiting(self):
         return True
+
+class TerminalInterface:
+    def __init__(self):
+        self.input_queue = queue.Queue()
+        self.output_queue = queue.Queue()
+        self.thread = threading.Thread(target=self._terminal_input_loop, daemon=True)
+        self.running = False
+
+    def start(self):
+        """Starts the terminal input thread."""
+        self.running = True
+        self.thread.start()
+
+    def _terminal_input_loop(self):
+        """Reads user input and puts the full command as a list of strings into the input queue."""
+        while self.running:
+            try:
+                line = input("").strip()
+                if not line:
+                    continue
+                tokens = line.split()
+                # Instead of splitting into (command, args), put the entire tokens list
+                self.input_queue.put(tokens)
+            except EOFError:
+                break
+            except Exception as e:
+                self.output_queue.put(f"[ERROR] Terminal input thread encountered: {e}")
+
+
+    def get_command(self):
+        """Returns the next terminal command as a list of strings, or None if queue empty."""
+        try:
+            return self.input_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+
+    def send_output(self, message):
+        """Puts a message in the output queue to be printed by the main thread."""
+        self.output_queue.put(message)
+
+def handleTerminalInput(ser, terminalCommand):
+    global isSampling, hours, minutes
+
+    match terminalCommand[0]:
+        case "status":
+            safe_serial_write(ser, "Q1\n")
+            time.sleep(0.05)
+            replyString = safe_serial_readline(ser)
+            match = re.match(r"([01])H(\d+)M(\d+)", replyString)
+            if match:
+                isSampling = match.group(1) == '1'
+                hours = int(match.group(2))
+                mins = int(match.group(3))
+
+                status_string = "enabled" if isSampling else "disabled"
+                hour_str = " hour" if hours == 1 else " hours"
+                minute_str = " minute" if mins == 1 else " minutes"
+                print(f"NORA has interval sampling {status_string}, sampling every {hours}{hour_str} and {minutes}{minute_str}.\n")
+
+        case "set-interval":
+            if len(terminalCommand) != 3:
+                print("ERR: Invalid set-interval usage!\n"
+                      "  Usage: set-interval <hours> <minutes>\n")
+            else:
+                hours = (terminalCommand[1])
+                minutes = (terminalCommand[2])
+                sendString = "Q1H" + hours + "M" + minutes + "\n"
+                safe_serial_write(ser, sendString)
+                time.sleep(0.05)
+                reply = safe_serial_readline(ser)
+                if (reply[0] == 'S' and reply[1] == '0'):
+                    print("WARNING: NORA is not currently interval sampling!\n")
+                elif (reply[0] == '1'):
+                    print(f"ERR: Recv err ack -> {reply}, retry command")
+                # hour_str = "hour" if hours == 1 else "hours"
+                # minute_str = "minute" if minutes == 1 else "minutes"
+                
+                # print(f"Setting sampling interval to {hours} {hour_str} and {minutes} {minute_str}...")
+                # print("Success")
+                # if not isSampling:
+                #     print("WARNING: ASRS is not currently interval sampling!\n")
+                # else:
+                #     print("")
+        case "start-sampling":
+            
+            print("Starting interval sampling...")
+            safe_serial_write(ser, "Q2\n")
+            time.sleep(0.05)
+            reply = safe_serial_readline(ser)
+            ack = (reply == "0")
+
+            if ack:
+                print("Success\n")
+            
+            else:
+                print(f"ERR: Recv err ack -> {ack}")
+
+
+        case "stop-sampling":
+            print("Stopping interval sampling...")
+            safe_serial_write(ser, "Q3\n")
+            time.sleep(0.05)
+            reply = safe_serial_readline
+            ack = (reply == "0")
+
+            if ack:
+                print("Success\n")
+            else:
+                print(f"ERR: Recv unknown ack -> {ack}")
+        case "run-sample":
+            safe_serial_write(ser, "Q4\n")
+            time.sleep(0.05)
+            reply = safe_serial_readline(ser)
+            if (reply == "0"):
+                print("Sample event started successfully!")
+            elif (reply == "1"):
+                print("ERR: NORA is not currently in standby mode, cannot start sample!")
+
+        case "read-temps":
+            safe_serial_write(ser, "Q5\n")
+            time.sleep(0.1)
+            reply = safe_serial_readline(ser)
+            ack = (len(reply) > 0 and reply == '0')
+
+            if ack:
+                match = re.match(r"0R1([0-9.]+)R2([0-9.]+)R3([0-9.]+)", reply)
+                if match:
+                    rtd1_sample = float(match.group(1))
+                    rtd2_flushwater = float(match.group(2)) #beep boop
+                    rtd3_airtemp = float(match.group(3))
+
+                    print("RTD 1 (Sampler Tube):            ", rtd1_sample, "C")
+                    print("RTD 2 (Flushwater):              ", rtd2_flushwater, "C")
+                    print("RTD 3 (NORA Internal Air Temp):  ", rtd3_airtemp, "C")
+            else:
+                print(f"ERR: Recv unknown reply -> {reply}")
+            
+        case "help":
+            print("Known commands:\n"
+                "  status                              — View the current status of NORA\n" #Q0, recv 1HxxMxx for sampling, or 0HxxMxx for not sampling
+                "  set-interval <hours> <minutes>      — Set the sampling interval (hours and minutes)\n" #Q1HxxMxx
+                "  start-sampling                      — Enable interval sampling\n" #Q2
+                "  stop-sampling                       — Disable interval sampling\n" #Q3
+                "  run-sample                          — Start a sample manually\n" #Q4
+                "  read-temps                          — Returns the temperatures of all system RTDs\n" #Q5, recv 0R1XX.XXR2xx.xxR3xx.xx
+                "  help                                — See this lovely help message again")
+        case _:
+            print(
+                f"ERR: UNKNOWN COMMAND {terminalCommand[0]}\n"
+                  "Type \"help\" to view all commands\n"
+            )
 
 def detect_serial_port():
     if CLI_DEBUG_MODE:
@@ -512,6 +670,8 @@ def write_command(command):
 
 def communicate(ser, sample_time_sec):
     try:
+        stopPump(ser)
+
         now = datetime.now()
         curr_time = now.strftime("%y%m%d_%H%M%S")
         directory = os.path.join(DIRECTORY_PATH, curr_time)
@@ -520,8 +680,7 @@ def communicate(ser, sample_time_sec):
         write_command(f"SaveToDirectory({directory})")
         wait_for_file_response("0", "savetodirectory", 16)
 
-        write_command("StartPump()")
-        wait_for_file_response("0", "startpump", 10)
+        startPump(ser)
 
         print(f"Starting {sample_time_sec // 60} minute {sample_time_sec % 60} second timer")
 
@@ -600,7 +759,7 @@ if __name__ == "__main__":
         print("Unable to set up serial connection. Retrying...")
         ser = setup()
 
-    print("[ASRS TERMINAL] > ", end="", flush=True)
+    print("[NORA TERMINAL] > ", end="", flush=True)
 
     while True:
         if ser is None or not ser.is_open:
@@ -610,8 +769,8 @@ if __name__ == "__main__":
 
         cmd = terminal.get_command()
         if cmd:
-            handleTerminalInput(cmd)
-            print("[ASRS TERMINAL] > ", end="", flush=True)
+            handleTerminalInput(ser, cmd)
+            print("[NORA TERMINAL] > ", end="", flush=True)
 
         try:
             write_to = safe_serial_readline(ser) if ser.in_waiting else None
@@ -624,7 +783,7 @@ if __name__ == "__main__":
 
         if write_to == TIDE_LEVEL_QUERY_TYPE:
             tide_level = queryForWaterLevel()
-            safe_serial_write(ser, str(tide_level) + "\n")
+            safe_serial_write(ser, "W" + str(tide_level) + "\n")
 
         elif write_to == SAMPLE_MESSAGE_TYPE:
             time_line = None

@@ -65,6 +65,7 @@ SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;
 
 bool debug_ignore_timeouts = true;
+bool is_interval_sampling = true;
 
 /* Setup and Loop **************************************************************/
 void setup() {

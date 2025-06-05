@@ -158,7 +158,7 @@ void alarmTriggered() {
   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
 
-  if (state == STANDBY) {
+  if (state == STANDBY && is_interval_sampling) {
     state = RELEASE;
   }
 }
@@ -702,6 +702,128 @@ void sendToPython(String string_to_send) {
 
     Serial.println(string_to_send);
  }
+
+/**
+ * @brief handles serial input from the Python script, handling commands from NORA terminal
+ * @param string_to_send the string to send over serial
+ * 
+ */
+
+ String checkForSerial() {
+   if (Serial.available()) {
+       String data = Serial.readStringUntil('\n'); // Read full line
+
+       if (data[0] == 'Q') { //If query type from NORA Terminal
+          if (data.length() < 2) {
+            sendToPython("1");
+            return "";
+          }
+          
+          String replyString;
+          if (data[1] == '0') { //
+            replyString += is_interval_sampling? "0" : "1";
+            replyString += "H";
+            replyString += String(sample_interval.Hour);
+            replyString += "M";
+            replyString += String(sample_interval.Minute);
+          }
+          else if (data[1] == '1') {
+            int hValue = 0;
+            int mValue = 0;
+
+            // Find positions
+            int hIndex = data.indexOf('H');
+            int mIndex = data.indexOf('M');
+
+            if (hIndex != -1 && mIndex != -1 && mIndex > hIndex) {
+              // Extract substring from after H to before M
+              String hStr = data.substring(hIndex + 1, mIndex);
+              hValue = hStr.toInt();
+
+              // Extract substring from after M to the end
+              String mStr = data.substring(mIndex + 1);
+              mValue = mStr.toInt();
+
+              sample_interval.Hour = hValue;
+              sample_interval.Minute = mValue;
+              updateAlarm();
+              replyString += is_interval_sampling? "S1" : "S0";
+            }
+            else {
+              replyString += "1";
+            }
+            
+
+            // Serial.print("H value: ");
+            // Serial.println(hValue);
+            // Serial.print("M value: ");
+            // Serial.println(mValue);
+
+          }
+          else if (data[1] == '2') {
+            is_interval_sampling = true;
+            replyString += "0"; //OK
+          }
+
+          else if (data[1] == '3') {
+            is_interval_sampling = false;
+            replyString += "0";
+          }
+
+          else if (data[1] == '4') {
+            if (state == STANDBY) {
+              replyString += "0";
+              state = RELEASE;
+            }
+            else {
+              replyString += "1"; //Not okay, not in standby
+            }
+          }
+
+          else if (data[1] == '5') {
+            replyString += "0";
+            float temp = readRTD(SAMPLE_TEMP_SENSOR);
+            replyString += "R1";
+            replyString += String(temp, 2);  // 2 decimal places
+
+            temp = readRTD(FLUSHWATER_TEMP_SENSOR);
+            replyString += "R2";
+            replyString += String(temp, 2);  // 2 decimal places
+
+            temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+            replyString += "R3";
+            replyString += String(temp, 2);  // 2 decimal places
+          }
+
+          else {
+            replyString += "1";
+          }
+
+          sendToPython(replyString);
+       }
+
+       else if (data[0] == 'W') {
+        return data; //Return raw string, float val extracted outside of this func
+       }
+
+       else if (data[0] == 'T') {
+          String replyString = "0T";
+          replyString += String(readRTD(SAMPLE_TEMP_SENSOR), 2);
+          sendToPython(replyString);
+       }
+
+       else {
+        String replyString = "1";
+        sendToPython(replyString);
+       }
+
+       return data;
+    }
+
+    else {
+      return "";
+    }
+}
 
 bool pumpControl(String pump_action, unsigned long end_time, FlushStage curr_stage) {
   sendToPython(pump_action);
