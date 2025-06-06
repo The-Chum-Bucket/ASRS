@@ -673,6 +673,7 @@ float readRTD(TempSensor sensor_num) {
 bool detectWater() {
   float air_temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
   float sample_temp = readRTD(SAMPLE_TEMP_SENSOR);
+  return true;
   
   uint32_t start_time = millis();
 
@@ -712,6 +713,8 @@ void sendToPython(String string_to_send) {
  String checkForSerial() {
    if (Serial.available()) {
        String data = Serial.readStringUntil('\n'); // Read full line
+      // Serial.print("DATA IS -> ");
+       //Serial.println(data);
 
        if (data[0] == 'Q') { //If query type from NORA Terminal
           if (data.length() < 2) {
@@ -721,7 +724,7 @@ void sendToPython(String string_to_send) {
           
           String replyString;
           if (data[1] == '0') { //
-            replyString += is_interval_sampling? "0" : "1";
+            replyString += is_interval_sampling? "1" : "0";
             replyString += "H";
             replyString += String(sample_interval.Hour);
             replyString += "M";

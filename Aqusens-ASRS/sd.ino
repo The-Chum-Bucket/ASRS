@@ -140,6 +140,7 @@ float getDropDistance(){
         if (data != "") {
             drop_distance_cm = data.substring(1).toFloat();  // Convert to float
             Serial.println(drop_distance_cm);
+            // return drop_distance_cm;
             break;
         }
         

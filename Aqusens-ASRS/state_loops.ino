@@ -84,7 +84,7 @@ void ensureSampleStartLoop() {
 
   while (state == ENSURE_SAMPLE_START) {
     ensureLCD("RUN SAMPLE");
-    checkForSerial();
+    //checkForSerial();
 
     key_pressed = cursorSelect(2, 3);
     
@@ -114,16 +114,21 @@ void ensureSampleStartLoop() {
  * Checks for E-Stop press
  */
 void releaseLoop() {
+  resetLCD();
+  lcd.setCursor(0, 1);
+  lcd.print("CALCULATING DROP");
+  lcd.setCursor(0, 2);
+  lcd.print("DISTANCE...");
   drop_distance_cm = getDropDistance();
 
-  if (is_second_retrieval_attempt) { //If this is the second try at retrieving a sample, increase drop dist by a meter
-    drop_distance_cm += SECOND_ATTEMPT_DROP_DIST_INCREASE_CM;
-  }
+  // if (is_second_retrieval_attempt) { //If this is the second try at retrieving a sample, increase drop dist by a meter
+  //   drop_distance_cm += SECOND_ATTEMPT_DROP_DIST_INCREASE_CM;
+  // }
 
   //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
-  Serial.print("DROP DIST CM");
-  Serial.println(drop_distance_cm);
+  // Serial.print("DROP DIST CM");
+  // Serial.println(drop_distance_cm);
 
   liftupTube();
   delay(3000);
@@ -194,6 +199,7 @@ void soakLoop() {
 
     // Update LCD with remaining time
     soakLCD(min_time, sec_time);
+    lcd.setCursor(12, 0);
     printDots(seconds_remaining);
   }
 
@@ -219,20 +225,6 @@ void recoverLoop() {
 
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
       //Serial.println("DONE!!");
-      // if (detectWater()) {
-      //   is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
-      //   state = SAMPLE;
-      // }
-      
-      // else if (!is_second_retrieval_attempt) { //If this is the first try to sample, then send the system back to the release state to try a second time
-      //   is_second_retrieval_attempt = true;
-      //   state = RELEASE;
-      // }
-
-      // else if (is_second_retrieval_attempt) { //If this is the second try and we still have not detected water, then alarm
-      //   is_second_retrieval_attempt = false;
-      //   setAlarmFault(SAMPLE_WATER_NOT_DETECTED);
-      // }
 
       state = SAMPLE;
     }
@@ -362,12 +354,15 @@ void flushSystemLoop() {
       case DUMP_SAMPLE:
         if (stagesStarted[DUMP_SAMPLE] == false) {
           //Serial.println("STARTING DUMP");
+          homeTube();
+          delay(50);
           liftupTube();
           stagesStarted[DUMP_SAMPLE] = true;
           curr_stage_end_time = curr_time + (1000 * LIFT_TUBE_TIME_S);
         }
         if (curr_time >= curr_stage_end_time) {
           // Lift tube state is done
+          //delay(5000);
           unliftTube();
           curr_stage = AIR_BUBBLE;
         }
@@ -453,6 +448,7 @@ void flushSystemLoop() {
 
     curr_time = millis();
     checkEstop();
+    checkForSerial(); //UNTESTED!
     updateFlushTimer(end_time, curr_stage);
   }
 }

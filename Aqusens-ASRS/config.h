@@ -31,7 +31,7 @@
 
 // #define SAMPLE_TIME_SEC              60*6 //Sample for 6 minutes
 #define SAMPLE_TIME_SEC 3 * 60
-#define PRE_SAMPLE_LOAD_TIME_MS 100 * 1000 
+#define PRE_SAMPLE_LOAD_TIME_MS 100 * 1000
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
@@ -45,7 +45,7 @@
 #define SYSTEM_CLOCK_FREQ       (48000000)
 #define PRESCALER_VAL           (8)
 
-#define ALARM_THRESHOLD_VALUE   (1010) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
+#define ALARM_THRESHOLD_VALUE   (1100) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
 
 /************************* Debounce Timings (utils.ino) *************************/
 #define TIME_BASED_DEBOUNCE_WAIT_TIME_MS (35)
@@ -79,7 +79,7 @@
 
 /************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
-#define LIFT_TUBE_TIME_S              (5.0f)
+#define LIFT_TUBE_TIME_S              (10.0f)
 #define AIR_BUBBLE_TIME_S             (90.0f)
 #define SAMPLE_TO_DEVICE_TIME_S       (90.0f)
 #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
@@ -100,7 +100,7 @@
 // #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 // #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
-#define LINE_FLUSH_DROP_DIST_CM (30.0f)
+#define LINE_FLUSH_DROP_DIST_CM (60.0f)
 #define HOME_TUBE_SPD_CM_S      (3.0f)
 
 /************************* Water Detection (utils.ino) ******************/
@@ -141,7 +141,7 @@
 #define SOLENOID_TWO  4
 
 // Misc
-#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 10 * 1000
+#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 30 * 1000
 
 /************************* Temperature Sensors *************************/
 typedef enum TempSensor {

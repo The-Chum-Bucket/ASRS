@@ -12,8 +12,8 @@
 
  void homeTube() {
   
-  // setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
-  // delay(1000);
+  setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
+  delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead() && state != ALARM){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
@@ -36,8 +36,8 @@
  */
 void homeTube(unsigned long end_time, FlushStage curr_stage) {
   
-  // setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
-  // delay(1000);
+  setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
+  delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
   
   while (!magSensorRead()) { //While the calculated position is greater than and the mag sensor is not sensing the magnet...
@@ -60,6 +60,7 @@ void homeTube(unsigned long end_time, FlushStage curr_stage) {
  */
 
 bool dropTube(unsigned int distance_cm) {
+  Serial.println("IN DROP TUBE!");
   unsigned long start_time = millis();
   unsigned long curr_time = millis();
   unsigned long last_lcd_update = millis();
@@ -80,7 +81,7 @@ bool dropTube(unsigned int distance_cm) {
   snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses) / 100.0f);
   if (state == RELEASE) {
     resetLCD();
-    releaseLCD(pos);
+    releaseLCD(pos, distance_cm);
   }
     
 
@@ -94,7 +95,7 @@ bool dropTube(unsigned int distance_cm) {
 
     if (state == RELEASE && curr_time - last_lcd_update > 50) { //Update every 50ms
       snprintf(pos, sizeof(pos), "%.2fm", PULSES_TO_DISTANCE(motor_pulses)/ 100.0f);
-      releaseLCD(pos);
+      releaseLCD(pos, distance_cm);
       last_lcd_update = millis();
     }
 
@@ -213,7 +214,7 @@ bool retrieveTube(float distance_cm) {
   unsigned long stage_start_time = start_time;
   static char pos[6];
 
-  if (abs(distance_cm) > 30 * 100) { //If trying to drop more than 30m, something went wrong!
+  if (abs(distance_cm) > 914) { //If trying to drop more than 914cm (30ft), something went wrong!
     return false;
   }
 
@@ -371,7 +372,6 @@ bool retrieveTube(float distance_cm) {
  */
 
 void liftupTube() {
-  
   setMotorSpeed(DRAIN_LIFT_SPEED_CM_S);
   while(magSensorRead() && state != ALARM) {
     checkMotor();

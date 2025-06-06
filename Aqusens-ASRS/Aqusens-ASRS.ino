@@ -64,7 +64,7 @@ typedef enum SolenoidState {
 SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;
 
-bool debug_ignore_timeouts = true;
+bool debug_ignore_timeouts = false;
 bool is_interval_sampling = true;
 
 /* Setup and Loop **************************************************************/
