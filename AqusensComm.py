@@ -18,6 +18,7 @@ from terminalThread import *
 import email_errs
 
 BAUD_RATE = 115200
+AQUSENS_DIR = "C:/Aqusens/Aqusens_Latest_CPE/"
 READ_FILE = "response_file.txt"
 WRITE_FILE = "command_file.txt"
 TEMP_CSV = "SampleTemps.csv"
@@ -138,13 +139,15 @@ def handleTerminalInput(ser, terminalCommand):
                 time.sleep(0.05)
                 reply = safe_serial_readline(ser)
                 
-                if (len(reply) > 0):
+                if (reply is not None and len(reply) > 0):
                     if (reply[0] == 'S'):
                         print("Success!")
                         if(reply[1] == '0'):
                             print("WARNING: NORA is not currently interval sampling!\n")
                     elif (reply[0] == '1'):
                         print(f"ERR: Recv err ack -> {reply}, retry command")
+                else:
+                    print("RECEIVED NONE FROM SET INTERVAL!")
 
                 # hour_str = "hour" if hours == 1 else "hours"
 
@@ -298,7 +301,7 @@ def setup():
 
     port = detect_serial_port()
     try:
-        ser = serial.Serial(port, 115200, timeout=1)
+        ser = serial.Serial(port, 115200, timeout=10)
         time.sleep(2)
         print(f"Connected to {port}")
         return ser
@@ -309,6 +312,7 @@ def setup():
 def safe_serial_write(ser, message):
     try:
         ser.write(message.encode())
+        #print("INFO: WROTE " + message)
     except serial.SerialException as e:
         print(f"[ERROR] Failed to write to serial: {e}")
         if ser and ser.is_open:
@@ -316,8 +320,11 @@ def safe_serial_write(ser, message):
         raise
 
 def safe_serial_readline(ser):
+    
     try:
-        return ser.readline().decode().strip()
+        x = ser.readline().decode().strip()
+        #print("RECEIVED: -> " + x)
+        return x
     except serial.SerialException as e:
         print(f"[ERROR] Failed to read from serial: {e}")
         if ser and ser.is_open:
@@ -338,32 +345,46 @@ def queryForWaterLevel():
 def wait_for_file_response(expected_prefix, expected_content, min_length):
     start_time = time.time()  # Record the start time
     
-    with open(READ_FILE, "r") as input:
+    with open(AQUSENS_DIR + READ_FILE, "r") as input:
         while True:
             input.seek(0)
             recv = input.read()
+           #print("AQUSENS ACK IS -> ", recv)
             if len(recv) >= min_length:
                 if recv[0] == expected_prefix and recv[1:1+len(expected_content)].lower() == expected_content:
+                    input.close()
+                    flushAqusensFifos()
                     return True
                 else:
                     reportErr(AQUSENS_NACK_RECEIVED, recv)
+                    input.close()
+                    flushAqusensFifos()
                     return False
 
             # Check if timeout has been exceeded
             if time.time() - start_time > AQUSENS_ACK_TIMEOUT_SEC:
                 reportErr(AQUSENS_ACK_TIMEOUT)
+                input.close()
+                flushAqusensFifos()
                 return False  # Timeout has occurred
 
             time.sleep(0.1)
 
+def flushAqusensFifos():
+    with open(AQUSENS_DIR + WRITE_FILE, 'w'):
+        pass
+    with open(AQUSENS_DIR + READ_FILE, 'w'):
+        pass
+
+
 def write_command(command):
-    with open(WRITE_FILE, "w") as output:
+    with open(AQUSENS_DIR + WRITE_FILE, "w") as output:
         output.write(command)
         output.flush()
 
 def communicate(ser, sample_time_sec):
     try:
-        stopPump(ser)
+        stopPump(ser, True)
 
         now = datetime.now()
         curr_time = now.strftime("%y%m%d_%H%M%S")
@@ -373,10 +394,13 @@ def communicate(ser, sample_time_sec):
         write_command(f"SaveToDirectory({directory})")
         wait_for_file_response("0", "savetodirectory", 16)
 
-        startPump(ser)
+        time.sleep(2)
+        #print("STARTING PUMP!!")
+        startPump(ser, True)
+        time.sleep(2)
 
         print(f"Starting {sample_time_sec // 60} minute {sample_time_sec % 60} second timer")
-
+        timeout_time = time.time() + sample_time_sec
         write_command("StartSampleCollection(1)")
         wait_for_file_response("0", "startsamplecollection", 22)
 
@@ -385,22 +409,33 @@ def communicate(ser, sample_time_sec):
             writer = csv.writer(csv_file)
             if os.stat(TEMP_CSV).st_size == 0:
                 writer.writerow(["Timestamp", "Min Temp(C)", "Max Temp(C)", "Avg Temp(C)"])
-
             temperatures = []
             num_samples = (sample_time_sec // 15) - 1
             for _ in range(num_samples):
-                time.sleep(15)
+                if (time.time() > timeout_time):
+                    print("CURR " , time.time(), " TIMEOUT ", timeout_time)
+                    break
                 safe_serial_write(ser, "T\n")
+                time.sleep(0.05)
                 now = datetime.now()
                 curr_time = now.strftime("%y-%m-%d_%H:%M:%S")
-                for _ in range(10):
-                    if ser.in_waiting:
-                        temp_data = safe_serial_readline(ser)
-                        if temp_data.isdigit():
-                            temperatures.append(int(temp_data))
-                            break
-                    time.sleep(0.5)
+                # for _ in range(10):
+                #     if ser.in_waiting:
+                temp_data = safe_serial_readline(ser)
+                #print("TEMP DATA -> ", temp_data)
+                temp_data = temp_data[2:]
+                
+                #if temp_data.isdigit():
+                try:
+                    rec = float(temp_data)
+                    print("TEMP DATA (strip) -> ", rec)
+                    temperatures.append(rec)
+                except ValueError:
+                    print("ERR: TEMP CONV ERR ", temp_data)
+                time.sleep(15)
 
+
+            print(temperatures)
             min_temp = min(temperatures)
             max_temp = max(temperatures)
             average_temp = sum(temperatures) / len(temperatures)
@@ -416,21 +451,22 @@ def communicate(ser, sample_time_sec):
         if ser and ser.is_open:
             ser.close()
 
-def controlPump(ser, command_name, expected_ack):
+def controlPump(ser, command_name, expected_ack, internal_comm=False):
     try:
         write_command(command_name)
         wait_for_file_response("0", expected_ack, len(expected_ack))
-        safe_serial_write(ser, "D\n")
+        if not internal_comm:
+            safe_serial_write(ser, "D\n")
     except Exception as e:
         print(f"Error with pump command '{command_name}': {e}")
         if ser and ser.is_open:
             ser.close()
 
-def stopPump(ser):
-    controlPump(ser, "StopPump()", "stoppump")
+def stopPump(ser, internal_comm=False):
+    controlPump(ser, "StopPump()", "stoppump", internal_comm)
 
-def startPump(ser):
-    controlPump(ser, "StartPump()", "startpump")
+def startPump(ser, internal_comm=False):
+    controlPump(ser, "StartPump()", "startpump", internal_comm)
 
 def sendEpochTime(ser):
     try:
@@ -446,6 +482,7 @@ if __name__ == "__main__":
     ser = setup()
     terminal = TerminalInterface()
     terminal.start()
+    flushAqusensFifos()
 
     while ser is None:
         time.sleep(1)
