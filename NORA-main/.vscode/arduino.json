@@ -1,0 +1,5 @@
+{
+    "board": "P1AM-100:samd:P1AM-100_native",
+    "programmer": "sam_ice",
+    "sketch": "NORA-main.ino"
+}

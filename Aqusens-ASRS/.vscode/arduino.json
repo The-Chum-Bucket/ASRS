@@ -1,7 +1,0 @@
-{
-    "port": "/dev/ttyACM0",
-    "board": "P1AM-100:samd:P1AM-100_native",
-    "programmer": "atmel_ice",
-    "sketch": "Aqusens-ASRS.ino",
-    "output": "./ArduinoOutput"
-}
