@@ -1,12 +1,12 @@
-//  -Aqusens-ASRS
-//  -Aqusens - Automated Sample Retrieval System V2.0
+//  -Aqusens - NORA
+//  -Aqusens - Nearshore Ocean Retrieval Apparatus v2.0
 //  -Date of Last Revision: 2/26/25
 //  -Califonia Polytechnic State University
 //  -Bailey College of Science and Mathamatics Biology Department
 //  -Primary Owner: Alexis Pasulka
 //  -Design Engineers: Doug Brewster and Rob Brewster
 //  -Contributors: Jack Anderson, Emma Lucke, Deeba Khosravi, Jorge Ramirez, Danny Gutierrez
-//  -Microcontroller: P1AM-100 ProOpen 
+//  -Microcontroller: P1AM-100 by ProOpen 
 //  -Arduino IDE version:2.3.6
 //  -See User Manual For Project Description
 //  -non-stock libraries needed: (add library reference here)
@@ -24,6 +24,7 @@
 #include <ArduinoJson.h>
 #include "config.h" // Config file, change global defines here (reel radius, flush timing, etc.)
 
+//volatile StateEnum state = SAMPLE; //Global vars for tracking device state...
 volatile StateEnum state = CALIBRATE; //Global vars for tracking device state...
 volatile AlarmFault fault = NONE;   // and for tracking Alarm reason
 
@@ -51,6 +52,9 @@ volatile bool estop_pressed = false; // Flag to keep track of E-stop pressed/rel
 // RTC
 RTCZero rtc;
 
+// Bool for keeping track of second attempts at retrieving a sample
+bool is_second_retrieval_attempt = false;
+
 // Solenoids
 typedef enum SolenoidState {
   OPEN,
@@ -60,7 +64,8 @@ typedef enum SolenoidState {
 SolenoidState solenoid_one_state = CLOSED;
 SolenoidState solenoid_two_state = CLOSED;
 
-bool debug_ignore_timeouts = true;
+bool debug_ignore_timeouts = false;
+bool is_interval_sampling = true;
 
 /* Setup and Loop **************************************************************/
 void setup() {

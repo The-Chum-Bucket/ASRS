@@ -9,6 +9,7 @@ void settingsLoop() {
   uint8_t last_key_press = rtc.getMinutes();
   char key_pressed;
   resetLCD();
+  uint32_t last_key_press_time = millis();
   
   while (state == SETTINGS) {
     settingsLCD(settings_page); //Launch into first page of settings

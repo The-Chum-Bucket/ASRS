@@ -129,16 +129,18 @@ float getDropDistance(){
     float drop_distance_cm = -1000; // Err value, will be updated to a non-negative (valid) distance if receive reply from topside computer
 
     sendToPython("T");
-    drop_distance_cm = getTideData();
+    //drop_distance_cm = getTideData();
 
     // get the distance to drop from online or sd card
     unsigned long start_time = millis();
     unsigned long curr_time = start_time;
     while (start_time + TOPSIDE_COMP_COMMS_TIMEOUT_MS > curr_time)
     {
-        if (Serial.available()) {
-            String data = Serial.readStringUntil('\n'); // Read full line
-            drop_distance_cm = data.toFloat();  // Convert to float
+        String data = checkForSerial();
+        if (data != "") {
+            drop_distance_cm = data.substring(1).toFloat();  // Convert to float
+            Serial.println(drop_distance_cm);
+            // return drop_distance_cm;
             break;
         }
         
@@ -152,8 +154,8 @@ float getDropDistance(){
       setAlarmFault(TOPSIDE_COMP_COMMS);
     }
 
-    // if drop distance is -1000 then get SD card info
-    if (drop_distance_cm == -1000) {
+    // if drop distance is -1000, or less than -100 then get SD card info
+    if (drop_distance_cm < -100) {
         
         drop_distance_cm = getTideData();
     }
@@ -167,7 +169,7 @@ float getDropDistance(){
         Serial.read();  // Discard extra data
     }
 
-    return PIER_DEFAULT_DIST_CM - drop_distance_cm + 60.0f;
+    return PIER_DEFAULT_DIST_CM - drop_distance_cm + TUBE_DROP_OVERSHOOT;
 }
 
 /**

@@ -11,7 +11,14 @@ void motorInit() {
  *        The motor's alarm terminals change impedance from low to high when alarm is triggered.
  */
 bool isMotorAlarming() {
-    return analogRead(ALARM_PLUS) > ALARM_THRESHOLD_VALUE;
+    if (analogRead(ALARM_PLUS) > ALARM_THRESHOLD_VALUE) {
+        Serial.print("Motor Alarm Read: ");
+        Serial.println(analogRead(ALARM_PLUS));
+        Serial.print("State: ");
+        Serial.println(state);
+        return true;
+    }
+    return false;
 }
 
 /**

@@ -125,13 +125,18 @@ void settingsLCD(uint8_t page) {
  * 
  * @param position String of current position of sample device in meters
  */
-void releaseLCD(String position) {
+void releaseLCD(String position, float distance_cm) {
+  float tide = distance_cm / 100;
   lcd.setCursor(0,1);
   lcd.print("RELEASING DEVICE...");
   lcd.setCursor(0,2);
   lcd.print("CURR POSITION:");
   lcd.setCursor(15,2);
   lcd.print(position);
+  lcd.setCursor(0, 3);
+  lcd.print("DROP: ");
+  lcd.print(String(tide, 2));
+  lcd.print("m");
 }
 
 /**
@@ -152,9 +157,6 @@ void releaseLCD(String position) {
 void soakLCD(String min_time, String sec_time) {
   lcd.setCursor(5,0);
   lcd.print("SOAKING");
-  lcd.setCursor(12, 0);
-
-
   lcd.setCursor(3,2);
   lcd.print(min_time);
   lcd.print(" MIN ");
@@ -184,6 +186,17 @@ void recoverLCD(String position) {
   lcd.print("CURR POSITION:");
   lcd.setCursor(15,2);
   lcd.print(position);
+
+  float rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
+
+  lcd.setCursor(0, 3);
+  lcd.print("RTD1:");
+  
+  if (rtd1 < 10) {
+    lcd.print(" ");
+  }
+  lcd.print(String(rtd1, 1));
+  lcd.print("C");
 }
 
 /**
@@ -200,8 +213,11 @@ void recoverLCD(String position) {
 void sampleLCD(unsigned long end_time) {
   lcd.setCursor(6,0);
   lcd.print("SAMPLING");
-  lcd.setCursor(1, 2);
-  lcd.print("SAMPLE TEMP: ");
+  lcd.setCursor(0,1);
+  lcd.print("SEC REMAINING:");
+  lcd.print(floor((end_time - millis()) / 1000));
+  lcd.setCursor(4, 2);
+  lcd.print("RTD1: ");
   lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
   lcd.print("C");
 }
@@ -218,6 +234,7 @@ void sampleLCD(unsigned long end_time) {
  */
 
 void preSampleLCD() {
+  resetLCD();
 
 
   lcd.setCursor(2, 0);
@@ -241,6 +258,7 @@ void preSampleLCD() {
       pumpControl(STOP_PUMP, 0, NULL_STAGE);
       return;
     }
+    checkForSerial();
 
     curr_time = millis();
     sec_remaining = int((end_time - curr_time) / 1000) + 1; //Rounds up, displays time 45-1 and not 44 to 0
@@ -255,7 +273,27 @@ void preSampleLCD() {
 
       
     }
+    lcd.setCursor(4, 3);
+    lcd.print("RTD1: ");
+    lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
+    lcd.print("C");
   }
+
+   if (detectWater()) {
+        is_second_retrieval_attempt = false; //reset is_second_try to false regardless of outcome
+        state = SAMPLE;
+      }
+      
+      else if (!is_second_retrieval_attempt) { //If this is the first try to sample, then send the system back to the release state to try a second time
+        is_second_retrieval_attempt = true;
+        Serial.println("DID NOT DETECT WATER!! SENDING BACK TO RELEASE");
+        state = RELEASE;
+      }
+
+      else if (is_second_retrieval_attempt) { //If this is the second try and we still have not detected water, then alarm
+        is_second_retrieval_attempt = false;
+        setAlarmFault(SAMPLE_WATER_NOT_DETECTED);
+      }
 
   return;
 }
@@ -321,11 +359,11 @@ void flushLCD(String min_time, String sec_time, bool temp_flag, FlushStage curr_
         break;
       case FRESHWATER_LINE_FLUSH:
         lcd.setCursor(2,1);
-        lcd.print("FLUSHING LINE");
+        lcd.print("SPRAYING LINE");
         break;
       case FRESHWATER_DEVICE_FLUSH:
         lcd.setCursor(1,1);
-        lcd.print("FLUSHING DEVICE");
+        lcd.print("RINSING SAMPLER");
         break;
       case AIR_FLUSH:
         lcd.setCursor(5,1);
@@ -343,9 +381,10 @@ void flushLCD(String min_time, String sec_time, bool temp_flag, FlushStage curr_
 
   lcd.setCursor(1,0);
   lcd.print("FLUSHING SYSTEM");
+  printDots(sec_time.toInt());
 
-  lcd.setCursor(5, 2);
-  lcd.print("TEMP: ");
+  lcd.setCursor(2, 2);
+  lcd.print("FLUSH TEMP:");
   
   if (temp_flag) {
     lcd.print(String(readRTD(FLUSHWATER_TEMP_SENSOR), 1));
@@ -428,10 +467,11 @@ void solenoidControlLCD() {
   if (currentTime - lastUpdateTime >= 1000) {
     lastUpdateTime = currentTime;
 
-    float rtd1, rtd2;
+    float rtd1, rtd2, rtd3;
 
     rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
     rtd2 = readRTD(FLUSHWATER_TEMP_SENSOR);
+    rtd3 = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
 
     lcd.setCursor(10, 1);
     lcd.print("RTD1:");
@@ -448,9 +488,16 @@ void solenoidControlLCD() {
     
     if (rtd2 < 10) 
       lcd.print(" ");
-    
-    
     lcd.print(String(rtd2, 1));
+
+    lcd.setCursor(10, 3);
+    lcd.print("RTD3:");
+    
+    if (rtd3 < 10) 
+      lcd.print(" ");
+    lcd.print(String(rtd3, 1));
+    lcd.print("C");
+
     lcd.setCursor(19, 2);
     lcd.print("C");
   }
@@ -460,6 +507,21 @@ void solenoidControlLCD() {
   lcd.print("<EXIT");
 }
 
+
+void sendTempOverSerial() {
+  float rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
+  float rtd2 = readRTD(FLUSHWATER_TEMP_SENSOR);
+  float rtd3 = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+  Serial.println("RTD1: ");
+  Serial.print(rtd1,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+  Serial.println("RTD2: ");
+  Serial.print(rtd2,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+  Serial.println("RTD3: ");
+  Serial.print(rtd3,2); //Print the value in Volts up to 2 decimal places
+  Serial.println("C");
+}
 /**
  * @brief Initialize SET_CLOCK screen
  * 

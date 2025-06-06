@@ -13,6 +13,11 @@
 #define REQUEST_TIME      "C" // Requests the current time in unix-epoch form
 #define REQUEST_TIDE_DATA "T" // Requests current tide level from NOAA API
 
+#define COMMS_REPORT_MOTOR_ERR                      "EM"  // Report motor alarm error
+#define COMMS_REPORT_TUBE_ERR                       "ET"  // Report tube retrieval error
+#define COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR  "EW"  // Report sample water not detected error
+#define COMMS_REPORT_ESTOP_PRESSED                  "EE"  // Report that the e-stop has been pressed
+
 /************************* Default Timings *************************/
 #define DEFAULT_SAMPLE_INTERVAL_HOUR 8
 #define DEFAULT_SAMPLE_INTERVAL_MIN  0
@@ -26,7 +31,7 @@
 
 // #define SAMPLE_TIME_SEC              60*6 //Sample for 6 minutes
 #define SAMPLE_TIME_SEC 3 * 60
-#define PRE_SAMPLE_LOAD_TIME_MS 45 * 1000
+#define PRE_SAMPLE_LOAD_TIME_MS 100 * 1000
 
 /************************* File & Time Config *************************/
 #define TIDE_FILE_NAME    "tides.txt"
@@ -40,7 +45,7 @@
 #define SYSTEM_CLOCK_FREQ       (48000000)
 #define PRESCALER_VAL           (8)
 
-#define ALARM_THRESHOLD_VALUE   (988) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
+#define ALARM_THRESHOLD_VALUE   (1100) // Analog value on the Alarm Plus pin that seperates alarm state from non-alarm state.
 
 /************************* Debounce Timings (utils.ino) *************************/
 #define TIME_BASED_DEBOUNCE_WAIT_TIME_MS (35)
@@ -53,28 +58,34 @@
 #define DROP_SPEED_CM_SEC           (75.0f)
 #define RAISE_SPEED_CM_SEC          (50.0f)
 #define SAFE_RISE_SPEED_CM_SEC      (3.0f)
+#define TUBE_DROP_OVERSHOOT         (30)
+#define NEAR_WATER_SPEED_CM_SEC     (10.0) //Speed for when we near the water on the way up and down when sampling
+#define IN_TUBE_RAISE_SPEED_CM_SEC  (10.0f) //Raise speed once we're in the tube but not year near home
 
+#define NEAR_WATER_DIST_CM          (100.0) //Distance from the water at which we slowly raise/lower the tube
 #define ALIGNMENT_TUBE_OPENING_DIST (208 + 20) // 208cm long "alignment tube", plus 20cm of buffer
 #define NEARING_HOME_DIST           (30) // slow down to a crawl at 15 cm from the magnet
 
 #define MOTOR_STEP_DELAY_MS         (50)
 
-#define TUBE_TIMEOUT_ERR_TIME_MS    (45 * 1000) // If we go 45 seconds in the retrieve stage without detecting the sampler, something's gone wrong
+#define TUBE_TIMEOUT_ERR_TIME_MS    (200 * 1000) // If we go 200 seconds in the retrieve stage without detecting the sampler, something's gone wrong
 
 #define DRAIN_LIFT_SPEED_CM_S       (2.0f)
 #define DRAIN_HOME_SPEED_CM_S       (-2.0f)
 
-#define MANUAL_CONTROL_MOTOR_SPEED (15.0f)
+#define MANUAL_CONTROL_MOTOR_SPEED  (20.0f)
 
-/************************* Tube FFush Timings & Thresholds (tube_flush.ino) *************************/
+#define SECOND_ATTEMPT_DROP_DIST_INCREASE_CM 100
+
+/************************* Tube Flush Timings & Thresholds (tube_flush.ino) *************************/
 // General timings
-#define LIFT_TUBE_TIME_S              (5.0f)
+#define LIFT_TUBE_TIME_S              (10.0f)
 #define AIR_BUBBLE_TIME_S             (90.0f)
 #define SAMPLE_TO_DEVICE_TIME_S       (90.0f)
 #define FLUSH_LINE_TIME_S               (5.0f) //Get this experimentally based on how far we send the line down to flush
 #define FRESHWATER_TO_DEVICE_TIME_S   (35.0f)
 #define FRESHWATER_FLUSH_TIME_S       (150.0f)
-#define FINAL_AIR_FLUSH_TIME_S        (45.0f)
+#define FINAL_AIR_FLUSH_TIME_S        (150.0f)
 #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 #define DEVICE_FLUSH_WATER_TEMP_MAX_C (27.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
@@ -89,8 +100,12 @@
 // #define FLUSHING_TIME_BUFFER          (10.0f)  //Gives some extra time to each of the steps in flush, ensures proper flushing
 // #define DEVICE_FLUSH_WATER_TEMP_MAX_C (100.0f) // Change this to the actual value, I assume the max somewhere south of boiling
 
-#define LINE_FLUSH_DROP_DIST_CM (30.0f)
-#define HOME_TUBE_SPD_CM_S      (2.0f)
+#define LINE_FLUSH_DROP_DIST_CM (60.0f)
+#define HOME_TUBE_SPD_CM_S      (3.0f)
+
+/************************* Water Detection (utils.ino) ******************/
+#define WATER_DETECTION_TIMEOUT_MS                10 * 1000
+#define MINIMUM_TEMP_DELTA_FOR_WATER_DETECTION_C (2.0f)
 
 /************************* SD Storage (sd.ino) *************************/
 #define PIER_DEFAULT_DIST_CM    (762.0f)
@@ -126,12 +141,13 @@
 #define SOLENOID_TWO  4
 
 // Misc
-#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 10 * 1000
+#define TOPSIDE_COMP_COMMS_TIMEOUT_MS 30 * 1000
 
 /************************* Temperature Sensors *************************/
 typedef enum TempSensor {
-  SAMPLE_TEMP_SENSOR        = 1, //TODO: MAKE SURE THESE 
-  FLUSHWATER_TEMP_SENSOR    = 2  // ARE CORRECTLY CORRESPONDING TO THE RIGHT TEMP SENSORS
+  SAMPLE_TEMP_SENSOR            = 1,
+  FLUSHWATER_TEMP_SENSOR        = 2,
+  NORA_INTERNAL_AIR_TEMP_SENSOR = 3
 } TempSensor;
 
 /************************* State and Fault Enums *************************/
@@ -165,7 +181,8 @@ typedef enum AlarmFault {
   MOTOR,
   TUBE,
   ESTOP,
-  TOPSIDE_COMP_COMMS
+  TOPSIDE_COMP_COMMS,
+  SAMPLE_WATER_NOT_DETECTED
 } AlarmFault;
 
 // Stages for the flushing procedure
@@ -178,6 +195,16 @@ typedef enum FlushStage {
   AIR_FLUSH                 =  4,
   HOME_TUBE                 =  5
 } FlushStage;
+
+
+enum RetrieveStage {
+  INITIAL_SLOW_RISE,
+  NORMAL_RISE,
+  STOP_AND_WAIT,
+  SLOW_RISE_TO_NEAR_HOME,
+  FINAL_SLOW_ALIGN,
+  RETRIEVAL_COMPLETE
+};
 
 typedef enum MotorDir {
   CCW, //Lowering

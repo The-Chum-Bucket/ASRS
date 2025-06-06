@@ -73,7 +73,7 @@ void rtcInit() {
  * 
  */
 void rtdInit() {
-  const char P1_04RTD_CONFIG[] = { 0x40, 0x01, 0x60, 0x03, 0x20, 0x01, 0x80, 0x00 }; //Enable slots 1 and 2, Pt100, Celcius, High Side Burnout
+  const char P1_04RTD_CONFIG[] = { 0x40, 0x02, 0x60, 0x03, 0x20, 0x01, 0x80, 0x00 }; //Enable slots 1 and 2, Pt100, Celcius, High Side Burnout
   // Config data for RTD module, configures Pt1000 type sensor and Celcius units returned when read
   P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT);
   // Serial.println(P1.configureModule(P1_04RTD_CONFIG, RTD_SLOT));  //sends the config data to the module in slot 1
@@ -158,7 +158,7 @@ void alarmTriggered() {
   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
 
-  if (state == STANDBY) {
+  if (state == STANDBY && is_interval_sampling) {
     state = RELEASE;
   }
 }
@@ -663,14 +663,170 @@ float readRTD(TempSensor sensor_num) {
 }
 
 /**
+ * @brief uses NORA's internal air temperature RTD and the sample 
+ *        temperature RTD to detect the presence of water in the sample tube based on 
+ *        the delta between the two RTDs' measured temperatures
+ * 
+ * @return true if water is detected in the tube, false if water is not detected
+ */
+
+bool detectWater() {
+  float air_temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+  float sample_temp = readRTD(SAMPLE_TEMP_SENSOR);
+  return true;
+  
+  uint32_t start_time = millis();
+
+  while (millis() - start_time < WATER_DETECTION_TIMEOUT_MS) {
+    if (abs(air_temp - sample_temp) > MINIMUM_TEMP_DELTA_FOR_WATER_DETECTION_C) {
+      return true;
+    }
+    delay(50);
+    air_temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+    sample_temp = readRTD(SAMPLE_TEMP_SENSOR);
+  }
+
+  return false;
+ }
+
+
+/**
  * @brief provides the ability to send a value over serial
  * 
  * @param string_to_send the string to send over serial
  * 
  */
 void sendToPython(String string_to_send) {
+    while (Serial.available()) {
+      Serial.read();
+    }
+
     Serial.println(string_to_send);
  }
+
+/**
+ * @brief handles serial input from the Python script, handling commands from NORA terminal
+ * @param string_to_send the string to send over serial
+ * 
+ */
+
+ String checkForSerial() {
+   if (Serial.available()) {
+       String data = Serial.readStringUntil('\n'); // Read full line
+      // Serial.print("DATA IS -> ");
+       //Serial.println(data);
+
+       if (data[0] == 'Q') { //If query type from NORA Terminal
+          if (data.length() < 2) {
+            sendToPython("1");
+            return "";
+          }
+          
+          String replyString;
+          if (data[1] == '0') { //
+            replyString += is_interval_sampling? "1" : "0";
+            replyString += "H";
+            replyString += String(sample_interval.Hour);
+            replyString += "M";
+            replyString += String(sample_interval.Minute);
+          }
+          else if (data[1] == '1') {
+            int hValue = 0;
+            int mValue = 0;
+
+            // Find positions
+            int hIndex = data.indexOf('H');
+            int mIndex = data.indexOf('M');
+
+            if (hIndex != -1 && mIndex != -1 && mIndex > hIndex) {
+              // Extract substring from after H to before M
+              String hStr = data.substring(hIndex + 1, mIndex);
+              hValue = hStr.toInt();
+
+              // Extract substring from after M to the end
+              String mStr = data.substring(mIndex + 1);
+              mValue = mStr.toInt();
+
+              sample_interval.Hour = hValue;
+              sample_interval.Minute = mValue;
+              updateAlarm();
+              replyString += is_interval_sampling? "S1" : "S0";
+            }
+            else {
+              replyString += "1";
+            }
+            
+
+            // Serial.print("H value: ");
+            // Serial.println(hValue);
+            // Serial.print("M value: ");
+            // Serial.println(mValue);
+
+          }
+          else if (data[1] == '2') {
+            is_interval_sampling = true;
+            replyString += "0"; //OK
+          }
+
+          else if (data[1] == '3') {
+            is_interval_sampling = false;
+            replyString += "0";
+          }
+
+          else if (data[1] == '4') {
+            if (state == STANDBY) {
+              replyString += "0";
+              state = RELEASE;
+            }
+            else {
+              replyString += "1"; //Not okay, not in standby
+            }
+          }
+
+          else if (data[1] == '5') {
+            replyString += "0";
+            float temp = readRTD(SAMPLE_TEMP_SENSOR);
+            replyString += "R1";
+            replyString += String(temp, 2);  // 2 decimal places
+
+            temp = readRTD(FLUSHWATER_TEMP_SENSOR);
+            replyString += "R2";
+            replyString += String(temp, 2);  // 2 decimal places
+
+            temp = readRTD(NORA_INTERNAL_AIR_TEMP_SENSOR);
+            replyString += "R3";
+            replyString += String(temp, 2);  // 2 decimal places
+          }
+
+          else {
+            replyString += "1";
+          }
+
+          sendToPython(replyString);
+       }
+
+       else if (data[0] == 'W') {
+        return data; //Return raw string, float val extracted outside of this func
+       }
+
+       else if (data[0] == 'T') {
+          String replyString = "0T";
+          replyString += String(readRTD(SAMPLE_TEMP_SENSOR), 2);
+          sendToPython(replyString);
+       }
+
+       else {
+        String replyString = "1";
+        sendToPython(replyString);
+       }
+
+       return data;
+    }
+
+    else {
+      return "";
+    }
+}
 
 bool pumpControl(String pump_action, unsigned long end_time, FlushStage curr_stage) {
   sendToPython(pump_action);
@@ -701,7 +857,8 @@ bool pumpControl(String pump_action, unsigned long end_time, FlushStage curr_sta
 
 
 /**
- * @brief sets the alarm fault type and sends ASRS into alarm state
+ * @brief Sets the alarm fault type and sends ASRS into alarm state. Reports motor, tube, and 
+ *        sample water not detected errrors to the topside computer
  * 
  * @param fault_type the type of fault (E-stop, communication timeout, motor alarm, etc.)
  */
@@ -710,6 +867,27 @@ void setAlarmFault(AlarmFault fault_type) {
     return;
   state = ALARM;
   fault = fault_type;
+
+/*
+ * Based on the type of error, report some to the python script. No need to report
+ * the estop being pressed (probably?), and cannot report a comms error if the comms are down...
+ */
+  switch (fault_type) {  
+    case MOTOR:
+      sendToPython(COMMS_REPORT_MOTOR_ERR);
+      break;
+    case TUBE:
+      sendToPython(COMMS_REPORT_TUBE_ERR);
+      break;
+    case SAMPLE_WATER_NOT_DETECTED:
+      sendToPython(COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR);
+      break;
+    case ESTOP:
+      sendToPython(COMMS_REPORT_ESTOP_PRESSED);
+      break;
+    default:
+      break;
+  }
 }
 
 
@@ -743,15 +921,15 @@ void setAlarmFault(AlarmFault fault_type) {
       }
     }
 
-    if (curr_time - last_request_time > 1000) { // Reask for time every 1 second
-      sendToPython(REQUEST_TIME);
-      last_request_time = curr_time;
-    }
+    // if (curr_time - last_request_time > 5000) { // Reask for time every 1 second
+    //   sendToPython(REQUEST_TIME);
+    //   last_request_time = curr_time;
+    // }
 
     curr_time = millis(); 
   }
 
-  setAlarmFault(TOPSIDE_COMP_COMMS);
+  //setAlarmFault(TOPSIDE_COMP_COMMS);
 
   // Timeout, return 0 or some error value
   return 0;

@@ -7,6 +7,7 @@
  */
 void calibrateLoop() {
   resetMotor();
+  rtcInit();
   resetLCD();
 
   updateSolenoid(CLOSED, SOLENOID_ONE);
@@ -26,8 +27,8 @@ void calibrateLoop() {
   // unliftTube();
 
   if (state != ALARM) {
-    state = FLUSH_SYSTEM;
-    //state = STANDBY; Leaving for debug purposes, hard to test when system instantly flushes lol
+    //state = FLUSH_SYSTEM;
+    state = STANDBY; //Leaving for debug purposes, hard to test when system instantly flushes lol
   }
 }
 
@@ -39,8 +40,8 @@ void calibrateLoop() {
  *    - Run Sample: proceeds to "Are you sure?" screen for manually running sample
  * Checks for E-Stop press
  */
-void standbyLoop()
-{ 
+void standbyLoop() { 
+  is_second_retrieval_attempt = false;
   static char key;
   static uint8_t key_pressed;
   lcd.clear();
@@ -49,6 +50,7 @@ void standbyLoop()
   while (state == STANDBY) 
   {
     checkEstop();
+    checkForSerial();
 
     standbyLCD();
 
@@ -78,11 +80,21 @@ void ensureSampleStartLoop() {
   char key_pressed;
   resetLCD();
   cursor_y = 3;
+  uint32_t last_key_press_time = millis();
 
   while (state == ENSURE_SAMPLE_START) {
     ensureLCD("RUN SAMPLE");
+    //checkForSerial();
 
     key_pressed = cursorSelect(2, 3);
+    
+    if (key_pressed != NULL) {
+      last_key_press_time = millis();
+    }
+
+    if (last_key_press_time + 30*1000 < millis()) { //time out after 30 seconds, return to standby
+      state = STANDBY;
+    }
 
     if (key_pressed == 'S') {
       if (cursor_y == 2) {
@@ -102,9 +114,25 @@ void ensureSampleStartLoop() {
  * Checks for E-Stop press
  */
 void releaseLoop() {
-  // drop_distance_cm = getDropDistance();
+  resetLCD();
+  lcd.setCursor(0, 1);
+  lcd.print("CALCULATING DROP");
+  lcd.setCursor(0, 2);
+  lcd.print("DISTANCE...");
+  drop_distance_cm = getDropDistance();
 
-  drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+  // if (is_second_retrieval_attempt) { //If this is the second try at retrieving a sample, increase drop dist by a meter
+  //   drop_distance_cm += SECOND_ATTEMPT_DROP_DIST_INCREASE_CM;
+  // }
+
+  //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
+
+  // Serial.print("DROP DIST CM");
+  // Serial.println(drop_distance_cm);
+
+  liftupTube();
+  delay(3000);
+  unliftTube();
 
 
   // actually drop the tube
@@ -112,7 +140,7 @@ void releaseLoop() {
     if (checkMotor() || checkEstop())
       continue; //Continue to next iteration of the loop, where state will be checked again (and will be ALARM)
 
-    if (dropTube(drop_distance_cm)) {
+    else if (dropTube(drop_distance_cm)) {
       state = SOAK;
     }
   }
@@ -138,6 +166,7 @@ void soakLoop() {
   while (state == SOAK && millis() < end_time) {
     checkEstop();
     checkMotor();
+    checkForSerial();
 
     // Calculate remaining time, accounting for millis() overflow
     uint32_t millis_remaining;
@@ -170,6 +199,7 @@ void soakLoop() {
 
     // Update LCD with remaining time
     soakLCD(min_time, sec_time);
+    lcd.setCursor(12, 0);
     printDots(seconds_remaining);
   }
 
@@ -187,13 +217,19 @@ void recoverLoop() {
   resetLCD();
 
   while (state == RECOVER) {
+    // sendTempOverSerial();
     // checkEstop();
     if (checkMotor() || checkEstop()) //If motor is alarming or estop is pressed, continue to next iter
       continue;
     
 
-    if (retrieveTube(0)) { //Return to 0 distance, or the "home" state
+    if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
+      //Serial.println("DONE!!");
+
       state = SAMPLE;
+    }
+    else {
+      setAlarmFault(TUBE);
     }
   }
 }
@@ -201,7 +237,7 @@ void recoverLoop() {
 /**
  * @brief SAMPLE
  * 
- * No selection options
+ * No selection options //TODO: CHECK ESTOP IN HERE!!!!
  */
 void sampleLoop() {
   pumpControl(START_PUMP, 0, NULL_STAGE);
@@ -211,6 +247,7 @@ void sampleLoop() {
   resetLCD();
 
   unsigned long start_time = millis();
+
   unsigned long curr_time = start_time;
   unsigned long last_lcd_update = 0;
   unsigned long end_time = start_time + (1000 * SAMPLE_TIME_SEC);
@@ -227,6 +264,8 @@ void sampleLoop() {
 
   while (state == SAMPLE) 
   {
+    // sendTempOverSerial();
+    checkEstop();
     if (last_lcd_update == 0 || curr_time - last_lcd_update > 1000) {
       sampleLCD(end_time);
       last_lcd_update = curr_time;
@@ -242,22 +281,19 @@ void sampleLoop() {
         setAlarmFault(TOPSIDE_COMP_COMMS);
       continue;
     }
-
-     if (Serial.available()) {
-       String data = Serial.readStringUntil('\n'); // Read full line
-
+     String data = checkForSerial();
+     if (data != "") {
+       
        // check if wanting temperature read
-       if (data == "T") {
-         sendToPython(String((int)(readRTD(SAMPLE_TEMP_SENSOR))));
-       }
+       
 
        // only transition to flushing after Aqusens sample done
-       else {
-         if (data == "D") { 
+       
+        if (data == "D" && state != ALARM) { 
            sendToPython("F"); 
            state = FLUSH_SYSTEM;
          }
-       }
+       
 
        // Flush any remaining characters
        while (Serial.available()) {
@@ -279,9 +315,13 @@ void sampleLoop() {
 
 void flushSystemLoop() {
   resetLCD();
+
+  int line_flush_time_s =  (LINE_FLUSH_DROP_DIST_CM * (1/HOME_TUBE_SPD_CM_S)) 
+                       + (HOME_TUBE_SPD_CM_S * 1/DROP_SPEED_CM_SEC);
+
   int total_flush_time_ms = 1000 * (LIFT_TUBE_TIME_S + 
                                     AIR_BUBBLE_TIME_S + 
-                                    FLUSH_LINE_TIME_S +
+                                    line_flush_time_s +
                                     FRESHWATER_TO_DEVICE_TIME_S + 
                                     FRESHWATER_FLUSH_TIME_S +
                                     FINAL_AIR_FLUSH_TIME_S + 
@@ -310,22 +350,19 @@ void flushSystemLoop() {
       pumpControl(STOP_PUMP, end_time, curr_stage);
     }
 
-
-    
-    if (checkMotor()) { //If motor is alarming, continue to break out of while loop (state will be changed by call)
-      continue;
-    }
-
     switch(curr_stage) {
       case DUMP_SAMPLE:
         if (stagesStarted[DUMP_SAMPLE] == false) {
           //Serial.println("STARTING DUMP");
+          homeTube();
+          delay(50);
           liftupTube();
           stagesStarted[DUMP_SAMPLE] = true;
           curr_stage_end_time = curr_time + (1000 * LIFT_TUBE_TIME_S);
         }
         if (curr_time >= curr_stage_end_time) {
           // Lift tube state is done
+          //delay(5000);
           unliftTube();
           curr_stage = AIR_BUBBLE;
         }
@@ -347,7 +384,15 @@ void flushSystemLoop() {
       case FRESHWATER_LINE_FLUSH:
         if (stagesStarted[FRESHWATER_LINE_FLUSH] == false) {
           //Serial.println("STARTING FRESHWATER LINE FLUSH");
-          dropTube(LINE_FLUSH_DROP_DIST_CM); //Drop down for line flush
+          if (is_second_retrieval_attempt) { 
+            // If this is the second try, drop the tube lower to flush 
+            // the additional line that potentially hit the water
+            dropTube(LINE_FLUSH_DROP_DIST_CM + SECOND_ATTEMPT_DROP_DIST_INCREASE_CM);
+          }
+
+          else {
+            dropTube(LINE_FLUSH_DROP_DIST_CM); //Drop down for line flush
+          }
           updateSolenoid(OPEN, SOLENOID_ONE); //Flush line
           homeTube(end_time, curr_stage);
           stagesStarted[FRESHWATER_LINE_FLUSH] = true;
@@ -403,6 +448,7 @@ void flushSystemLoop() {
 
     curr_time = millis();
     checkEstop();
+    checkForSerial(); //UNTESTED!
     updateFlushTimer(end_time, curr_stage);
   }
 }
@@ -559,9 +605,11 @@ void dryLoop() {
 
       key_pressed = getKeyTimeBasedDebounce();
 
+
       if (key_pressed == 'L') {
         state = MANUAL;
       }
+
 
       else if (key_pressed == 'S') {
         resetMotor();
@@ -580,7 +628,10 @@ void dryLoop() {
       }
 
       else if (key_pressed == 'U') {
-        while (!magSensorRead() && pressAndHold('U') == 'U') {
+        if (magSensorRead()) {
+          turnMotorOff();
+        }
+        while (pressAndHold('U') == 'U') {
           if (magSensorRead()) 
             turnMotorOff();
           else
