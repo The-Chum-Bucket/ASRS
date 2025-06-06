@@ -56,6 +56,7 @@ echo Updating pip...
 python3 -m ensurepip
 python3 -m pip install --upgrade pip
 
+
 :: Create venv if it doesn't exist
 if not exist %VENV_DIR%\Scripts\python.exe (
     echo Creating virtual environment in %VENV_DIR%...
